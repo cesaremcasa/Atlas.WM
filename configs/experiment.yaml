@@ -1,0 +1,19 @@
+# ATLAS-WM Experiment Configuration
+
+model:
+  encoder:
+    d_static: 32
+    d_dynamic: 64
+    d_controllable: 32
+    input_channels: 3
+
+data:
+  grid_size: 10
+  num_episodes: 100
+  batch_size: 32
+  sequence_length: 50
+
+training:
+  learning_rate: 0.001
+  epochs: 10
+  device: "cpu" # Use "mps" for Mac M2 GPU acceleration

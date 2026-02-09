@@ -24,3 +24,5 @@ wheels/
 venv/
 env/
 ENV/
+# Data (Processed is too large for git)
+data/processed/
