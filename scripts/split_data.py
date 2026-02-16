@@ -1,48 +1,44 @@
-import numpy as np
 import os
-from sklearn.model_selection import train_test_split
+import numpy as np
 
-def split_data(data_dir="data/raw", split_dir="data/processed"):
-    """
-    Splits raw data into Train/Val/Test sets (80/10/10).
-    """
-    os.makedirs(split_dir, exist_ok=True)
-    
-    # Load raw data
-    obs = np.load(os.path.join(data_dir, "observations.npy"))
-    actions = np.load(os.path.join(data_dir, "actions.npy"))
-    next_obs = np.load(os.path.join(data_dir, "next_observations.npy"))
-    
-    print(f"Total samples: {len(obs)}")
-    
-    # Split 80% Train, 20% Temp
-    train_obs, temp_obs, train_act, temp_act, train_next, temp_next = train_test_split(
-        obs, actions, next_obs, test_size=0.2, random_state=42
-    )
-    
-    # Split Temp into 50% Val, 50% Test (10% total each)
-    val_obs, test_obs, val_act, test_act, val_next, test_next = train_test_split(
-        temp_obs, temp_act, temp_next, test_size=0.5, random_state=42
-    )
-    
-    print(f"Train: {len(train_obs)}")
-    print(f"Val: {len(val_obs)}")
-    print(f"Test: {len(test_obs)}")
-    
-    # Save
-    np.save(os.path.join(split_dir, "train_obs.npy"), train_obs)
-    np.save(os.path.join(split_dir, "train_act.npy"), train_act)
-    np.save(os.path.join(split_dir, "train_next.npy"), train_next)
-    
-    np.save(os.path.join(split_dir, "val_obs.npy"), val_obs)
-    np.save(os.path.join(split_dir, "val_act.npy"), val_act)
-    np.save(os.path.join(split_dir, "val_next.npy"), val_next)
-    
-    np.save(os.path.join(split_dir, "test_obs.npy"), test_obs)
-    np.save(os.path.join(split_dir, "test_act.npy"), test_act)
-    np.save(os.path.join(split_dir, "test_next.npy"), test_next)
-    
-    print(f"Data saved to {split_dir}")
+# Paths
+data_dir = "data/raw"
+processed_dir = "data/processed"
 
-if __name__ == "__main__":
-    split_data()
+# Load raw data
+obs = np.load(os.path.join(data_dir, "observations.npy"))
+actions = np.load(os.path.join(data_dir, "actions.npy"))
+next_obs = np.load(os.path.join(data_dir, "next_observations.npy"))
+
+print(f"Raw data shape: {obs.shape}")
+
+# Split parameters
+total_samples = len(obs)
+train_end = int(0.8 * total_samples)
+val_end = int(0.9 * total_samples)
+
+# Create output directory
+os.makedirs(processed_dir, exist_ok=True)
+
+# Split and save
+print("Splitting and saving data...")
+
+# Train
+np.save(os.path.join(processed_dir, "train_obs.npy"), obs[:train_end])
+np.save(os.path.join(processed_dir, "train_actions.npy"), actions[:train_end])
+np.save(os.path.join(processed_dir, "train_next_obs.npy"), next_obs[:train_end])
+
+# Val
+np.save(os.path.join(processed_dir, "val_obs.npy"), obs[train_end:val_end])
+np.save(os.path.join(processed_dir, "val_actions.npy"), actions[train_end:val_end])
+np.save(os.path.join(processed_dir, "val_next_obs.npy"), next_obs[train_end:val_end])
+
+# Test
+np.save(os.path.join(processed_dir, "test_obs.npy"), obs[val_end:])
+np.save(os.path.join(processed_dir, "test_actions.npy"), actions[val_end:])
+np.save(os.path.join(processed_dir, "test_next_obs.npy"), next_obs[val_end:])
+
+print("Done.")
+print(f"Train: {train_end} samples")
+print(f"Val: {val_end - train_end} samples")
+print(f"Test: {total_samples - val_end} samples")
