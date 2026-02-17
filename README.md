@@ -5,7 +5,7 @@
 [![Status](https://img.shields.io/badge/status-v2.0%20complete-success.svg)](https://github.com/cesaremcasa/Atlas.WM/releases/tag/v2.0)
 
 **Status:** Architecture Validated (v2.0) | Environment Complexity Upgrade (v3.0 In Progress)  
-**Author:** Cesare Donà Hill  
+**Author:** Cesar Augusto  
 **Repository:** [github.com/cesaremcasa/Atlas.WM](https://github.com/cesaremcasa/Atlas.WM)
 
 A production-ready structured world model that decomposes latent space into interpretable semantic components (static/dynamic/controllable) and enforces physical constraints through architectural guarantees rather than optimization targets. Designed for robotics and autonomous systems where physics violations are catastrophic.
@@ -458,4 +458,5 @@ Atlas.WM explicitly rejects pixel-fidelity optimization in favor of physics-corr
 **Last Updated:** February 15, 2026  
 **Version:** 2.0  
 **Status:** Architecture Validated, Environment Upgrade Planned
+
 
