@@ -382,9 +382,9 @@ Contributions are welcome! Please follow these guidelines:
 
 If you use Atlas.WM in your research, please cite:
 ```bibtex
-@software{donahill2026atlas,
+@software{Augusto2026atlas,
   title={Atlas.WM: Structured World Model Framework},
-  author={Donà Hill, Cesare},
+  author={Augusto, Cesar},
   year={2026},
   url={https://github.com/cesaremcasa/Atlas.WM},
   version={2.0}
@@ -397,7 +397,7 @@ If you use Atlas.WM in your research, please cite:
 
 MIT License
 
-Copyright (c) 2026 Cesare Donà Hill
+Copyright (c) 2026 Cesar Augusto
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -458,3 +458,4 @@ Atlas.WM explicitly rejects pixel-fidelity optimization in favor of physics-corr
 **Last Updated:** February 15, 2026  
 **Version:** 2.0  
 **Status:** Architecture Validated, Environment Upgrade Planned
+
