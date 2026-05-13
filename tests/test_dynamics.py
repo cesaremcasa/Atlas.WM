@@ -9,20 +9,21 @@ def test_dynamics_shapes():
     dynamics = StructuredDynamics(d_static=32, d_dynamic=64, d_controllable=32, action_dim=4)
 
     z_dict = {
-        'z_static': torch.randn(4, 32),
-        'z_dynamic': torch.randn(4, 64),
-        'z_controllable': torch.randn(4, 32),
+        "z_static": torch.randn(4, 32),
+        "z_dynamic": torch.randn(4, 64),
+        "z_controllable": torch.randn(4, 32),
     }
     action = torch.randn(4, 4)
 
     z_next = dynamics(z_dict, action)
 
-    assert z_next['z_static'].shape == (4, 32), "Static dimension mismatch"
-    assert z_next['z_dynamic'].shape == (4, 64), "Dynamic dimension mismatch"
-    assert z_next['z_controllable'].shape == (4, 32), "Controllable dimension mismatch"
-    assert z_next['z_full'].shape == (4, 128), "Full latent dimension mismatch"
+    assert z_next["z_static"].shape == (4, 32), "Static dimension mismatch"
+    assert z_next["z_dynamic"].shape == (4, 64), "Dynamic dimension mismatch"
+    assert z_next["z_controllable"].shape == (4, 32), "Controllable dimension mismatch"
+    assert z_next["z_full"].shape == (4, 128), "Full latent dimension mismatch"
 
     print("PASS: test_dynamics_shapes")
+
 
 def test_static_immutability():
     """
@@ -34,9 +35,9 @@ def test_static_immutability():
     dynamics.eval()
 
     z_dict = {
-        'z_static': torch.randn(4, 32),
-        'z_dynamic': torch.randn(4, 64),
-        'z_controllable': torch.randn(4, 32),
+        "z_static": torch.randn(4, 32),
+        "z_dynamic": torch.randn(4, 64),
+        "z_controllable": torch.randn(4, 32),
     }
     action = torch.randn(4, 4)
 
@@ -44,10 +45,12 @@ def test_static_immutability():
         z_next = dynamics(z_dict, action)
 
     # HARD CHECK: Not just "close", but IDENTICAL
-    assert torch.equal(z_next['z_static'], z_dict['z_static']), \
+    assert torch.equal(z_next["z_static"], z_dict["z_static"]), (
         "Static component changed! Architectural constraint violated."
+    )
 
     print("PASS: test_static_immutability (bit-perfect match)")
+
 
 def test_static_no_gradient_flow():
     """
@@ -58,9 +61,9 @@ def test_static_no_gradient_flow():
     dynamics.train()
 
     z_dict = {
-        'z_static': torch.randn(4, 32, requires_grad=True),
-        'z_dynamic': torch.randn(4, 64, requires_grad=True),
-        'z_controllable': torch.randn(4, 32, requires_grad=True),
+        "z_static": torch.randn(4, 32, requires_grad=True),
+        "z_dynamic": torch.randn(4, 64, requires_grad=True),
+        "z_controllable": torch.randn(4, 32, requires_grad=True),
     }
     action = torch.randn(4, 4)
 
@@ -68,21 +71,21 @@ def test_static_no_gradient_flow():
     z_next = dynamics(z_dict, action)
 
     # Try to backprop through full output
-    loss = z_next['z_full'].sum()
+    loss = z_next["z_full"].sum()
     loss.backward()
 
     # Static should have NO gradient (detached)
     # Note: In PyTorch, comparing to None is safer than checking for zeros
     # because detached tensors might not even have a grad attribute populated
     # depending on the graph construction, though here it returns a new tensor.
-    assert z_dict['z_static'].grad is None, \
-        "Gradients leaked to z_static! Detach failed."
+    assert z_dict["z_static"].grad is None, "Gradients leaked to z_static! Detach failed."
 
     # Dynamic and controllable SHOULD have gradients
-    assert z_dict['z_dynamic'].grad is not None, "Dynamic not learning"
-    assert z_dict['z_controllable'].grad is not None, "Controllable not learning"
+    assert z_dict["z_dynamic"].grad is not None, "Dynamic not learning"
+    assert z_dict["z_controllable"].grad is not None, "Controllable not learning"
 
     print("PASS: test_static_no_gradient_flow")
+
 
 def test_residual_updates():
     """Verify that dynamic and controllable components use residual connections."""
@@ -91,9 +94,9 @@ def test_residual_updates():
     dynamics.eval()
 
     z_dict = {
-        'z_static': torch.randn(1, 32),
-        'z_dynamic': torch.randn(1, 64),
-        'z_controllable': torch.randn(1, 32),
+        "z_static": torch.randn(1, 32),
+        "z_dynamic": torch.randn(1, 64),
+        "z_controllable": torch.randn(1, 32),
     }
 
     # Zero action to test pure dynamic evolution
@@ -109,10 +112,10 @@ def test_residual_updates():
 
     # Simple sanity: output is not identical to input (it evolved)
     # Unless the nets are initialized to zero, which they aren't.
-    assert not torch.equal(z_next['z_dynamic'], z_dict['z_dynamic']), \
-        "Dynamic should have changed"
+    assert not torch.equal(z_next["z_dynamic"], z_dict["z_dynamic"]), "Dynamic should have changed"
 
     print("PASS: test_residual_updates")
+
 
 if __name__ == "__main__":
     test_dynamics_shapes()

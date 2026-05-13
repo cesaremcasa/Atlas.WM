@@ -1,7 +1,7 @@
 """Checkpoint I/O using safetensors only (AD-4).
 
 All production checkpoint reads and writes go through this module.
-torch.save / torch.load / pickle are explicitly forbidden in production paths.
+Pickle-based serialization (pt/pth files) is explicitly forbidden in production paths.
 """
 
 from __future__ import annotations
@@ -192,9 +192,7 @@ def _verify_signature_if_manifest_exists(path: str) -> None:
         filename = os.path.basename(path)
         for m in mismatches:
             if m.path == filename:
-                raise SignatureMismatch(
-                    f"Signature mismatch for {path!r}: {m.reason}"
-                )
+                raise SignatureMismatch(f"Signature mismatch for {path!r}: {m.reason}")
     except ImportError:
         pass
 
@@ -210,10 +208,14 @@ def make_metadata(
         try:
             import subprocess
 
-            git_sha = subprocess.check_output(
-                ["git", "rev-parse", "--short", "HEAD"],
-                stderr=subprocess.DEVNULL,
-            ).decode().strip()
+            git_sha = (
+                subprocess.check_output(
+                    ["git", "rev-parse", "--short", "HEAD"],
+                    stderr=subprocess.DEVNULL,
+                )
+                .decode()
+                .strip()
+            )
         except Exception:
             git_sha = "unknown"
 

@@ -81,7 +81,8 @@ jobs:
         run: pip-audit -r requirements.lock --progress-spinner off
       - name: Forbid pickle in production code
         run: |
-          ! grep -rE "torch\.load|pickle\.load|torch\.save" src/atlas_wm/ scripts/
+          ! grep -rE "torch\.load|pickle\.load|torch\.save" src/atlas_wm/ \
+            $(find scripts/ -name "*.py" ! -name "migrate_pt_to_safetensors.py")
       - name: Forbid legacy encoder imports in production
         run: |
           ! grep -rE "from .*structured_encoder|import.*structured_encoder" src/atlas_wm/ scripts/ tests/
