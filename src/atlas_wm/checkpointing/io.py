@@ -200,10 +200,15 @@ def _verify_signature_if_manifest_exists(path: str) -> None:
 def make_metadata(
     model_class: str,
     config: dict[str, Any],
-    env_hash: str = "placeholder-block-6",
+    env_hash: str | None = None,
     git_sha: str | None = None,
 ) -> dict[str, str]:
     """Convenience helper to build a valid metadata dict."""
+    if env_hash is None:
+        from atlas_wm.checkpointing.env_hash import compute_env_hash
+
+        env_hash = compute_env_hash()
+
     if git_sha is None:
         try:
             import subprocess
