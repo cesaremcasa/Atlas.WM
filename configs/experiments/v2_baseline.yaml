@@ -1,0 +1,20 @@
+# v2.0 frozen reference configuration — do not modify.
+# Reproduced from the canonical train_continuous_fixed.py run (commit 7dd1f37).
+
+_base: "../base.yaml"
+_frozen: true
+
+model:
+  d_static_immutable: 8   # mapped from d_static=16 (split 8/8 for immutable/slow)
+  d_static_slow: 8
+  d_dynamic: 32
+  d_controllable: 16
+  input_dim: 6
+
+training:
+  batch_size: 256
+  learning_rate: 3.0e-4
+  num_epochs: 100
+  early_stopping_patience: 15
+  grad_clip_norm: 0.5
+  lambda_slow_drift: 0.0   # v2.0 had no slow drift (single static component)
