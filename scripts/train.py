@@ -72,7 +72,8 @@ def train(args: argparse.Namespace) -> None:
             pred_loss = nn.functional.mse_loss(z_t1_pred["z_full"], z_t1_true["z_full"])
             z_var = z_t1_pred["z_full"].var(dim=0).mean()
             var_penalty = torch.clamp(1.0 - z_var, min=0)
-            loss = pred_loss + 0.01 * var_penalty
+            drift_penalty = z_t1_pred["delta_slow"].norm(dim=-1).mean()
+            loss = pred_loss + 0.01 * var_penalty + 0.1 * drift_penalty
 
             if torch.isnan(loss):
                 print("NaN detected! Skipping batch...")
