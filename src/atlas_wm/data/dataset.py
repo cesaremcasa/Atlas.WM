@@ -19,6 +19,7 @@ class ATLASDataset(Dataset):
         next_obs_path = f"{data_dir}/{split}_next_obs.npy"
 
         import os
+
         if not os.path.exists(obs_path):
             raise FileNotFoundError(
                 f"{split} data not found at {obs_path}. "

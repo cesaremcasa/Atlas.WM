@@ -9,6 +9,7 @@ class StructuredDynamics(nn.Module):
     CHANGE: Switching to SOFT constraint for static component.
     Hard constraint caused artificial 0.0000 loss.
     """
+
     def __init__(self, d_static=16, d_dynamic=32, d_controllable=16, action_dim=8):
         super().__init__()
 
@@ -17,11 +18,7 @@ class StructuredDynamics(nn.Module):
         self.d_controllable = d_controllable
 
         # Static: Small residual network (allows tiny drift)
-        self.static_net = nn.Sequential(
-            nn.Linear(d_static, 32),
-            nn.ReLU(),
-            nn.Linear(32, d_static)
-        )
+        self.static_net = nn.Sequential(nn.Linear(d_static, 32), nn.ReLU(), nn.Linear(32, d_static))
 
         # Dynamic: Autonomous evolution
         self.dynamic_net = nn.Sequential(
@@ -45,9 +42,9 @@ class StructuredDynamics(nn.Module):
             z_dict: Dict with keys ['z_static', 'z_dynamic', 'z_controllable']
             action: Tensor [B, action_dim]
         """
-        z_static = z_dict['z_static']
-        z_dynamic = z_dict['z_dynamic']
-        z_controllable = z_dict['z_controllable']
+        z_static = z_dict["z_static"]
+        z_dynamic = z_dict["z_dynamic"]
+        z_controllable = z_dict["z_controllable"]
 
         # Soft Constraint: Static can change slightly (residual)
         delta_static = self.static_net(z_static)
@@ -63,12 +60,8 @@ class StructuredDynamics(nn.Module):
         z_controllable_next = z_controllable + delta_controllable
 
         return {
-            'z_static': z_static_next,
-            'z_dynamic': z_dynamic_next,
-            'z_controllable': z_controllable_next,
-            'z_full': torch.cat([
-                z_static_next,
-                z_dynamic_next,
-                z_controllable_next
-            ], dim=-1)
+            "z_static": z_static_next,
+            "z_dynamic": z_dynamic_next,
+            "z_controllable": z_controllable_next,
+            "z_full": torch.cat([z_static_next, z_dynamic_next, z_controllable_next], dim=-1),
         }
