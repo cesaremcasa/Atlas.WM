@@ -20,9 +20,32 @@ wheels/
 .installed.cfg
 *.egg
 
-# Virtual Environment
+# Virtual environment
 venv/
 env/
 ENV/
-# Data (Processed is too large for git)
+.venv/
+
+# Data — processed splits are reproducible from raw, not committed
 data/processed/
+
+# Checkpoints — .pt files are unsafe (pickle); .safetensors are committed via manifest
+*.pt
+checkpoints/*.safetensors
+
+# Experiment tracking
+wandb/
+runs/
+tensorboard_logs/
+
+# IDE / OS
+.idea/
+.vscode/
+*.DS_Store
+.env
+
+# Test / coverage artifacts
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
