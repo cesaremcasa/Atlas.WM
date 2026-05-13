@@ -9,6 +9,11 @@ from torch.utils.data import DataLoader
 from atlas_wm.checkpointing.io import make_metadata, save_checkpoint
 from atlas_wm.data.dataset import ATLASDataset
 from atlas_wm.models.continuous_encoder import ContinuousEncoder
+from atlas_wm.models.identifiability import (
+    ActionInvarianceCritic,
+    critic_loss,
+    encoder_adversarial_loss,
+)
 from atlas_wm.models.structured_dynamics import StructuredDynamics
 
 
@@ -41,9 +46,11 @@ def train(args: argparse.Namespace) -> None:
     dynamics = StructuredDynamics(d_static=16, d_dynamic=32, d_controllable=16, action_dim=8).to(
         device
     )
+    critic = ActionInvarianceCritic(d_immutable=encoder.d_immutable, action_dim=8).to(device)
 
     params = list(encoder.parameters()) + list(dynamics.parameters())
     optimizer = optim.Adam(params, lr=3e-4)
+    critic_optimizer = optim.Adam(critic.parameters(), lr=1e-3)
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=3, factor=0.5)
 
     print("Starting training...")
@@ -56,6 +63,7 @@ def train(args: argparse.Namespace) -> None:
     for epoch in range(100):
         encoder.train()
         dynamics.train()
+        critic.train()
         train_loss = 0.0
 
         for batch in train_loader:
@@ -69,11 +77,19 @@ def train(args: argparse.Namespace) -> None:
             with torch.no_grad():
                 z_t1_true = encoder(next_obs)
 
+            # Critic step: train critic to predict action from z_static_immutable (detached)
+            c_loss = critic_loss(critic, z_t["z_static_immutable"].detach(), action)
+            critic_optimizer.zero_grad()
+            c_loss.backward()
+            critic_optimizer.step()
+
+            # Encoder+dynamics step
             pred_loss = nn.functional.mse_loss(z_t1_pred["z_full"], z_t1_true["z_full"])
             z_var = z_t1_pred["z_full"].var(dim=0).mean()
             var_penalty = torch.clamp(1.0 - z_var, min=0)
             drift_penalty = z_t1_pred["delta_slow"].norm(dim=-1).mean()
-            loss = pred_loss + 0.01 * var_penalty + 0.1 * drift_penalty
+            adv_loss = encoder_adversarial_loss(critic, z_t["z_static_immutable"], action)
+            loss = pred_loss + 0.01 * var_penalty + 0.1 * drift_penalty + 0.01 * adv_loss
 
             if torch.isnan(loss):
                 print("NaN detected! Skipping batch...")
@@ -93,6 +109,7 @@ def train(args: argparse.Namespace) -> None:
 
         encoder.eval()
         dynamics.eval()
+        critic.eval()
         val_loss = 0.0
 
         with torch.no_grad():
