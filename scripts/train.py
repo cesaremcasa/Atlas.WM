@@ -2,13 +2,10 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
-import yaml
-import sys
-sys.path.insert(0, '.')
-from src.models.continuous_encoder import ContinuousEncoder
-from src.models.structured_dynamics import StructuredDynamics
-from src.data.continuous_dataset import ContinuousDataset
 import numpy as np
+from atlas_wm.models.continuous_encoder import ContinuousEncoder
+from atlas_wm.models.structured_dynamics import StructuredDynamics
+from atlas_wm.data.dataset import ATLASDataset
 
 def normalize_data(data_dir):
     """Normalize observations to [0, 1] range."""
@@ -32,8 +29,8 @@ def train():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"Using device: {device}")
     
-    train_dataset = ContinuousDataset('data/processed', split='train')
-    val_dataset = ContinuousDataset('data/processed', split='val')
+    train_dataset = ATLASDataset('data/processed', split='train')
+    val_dataset = ATLASDataset('data/processed', split='val')
     
     train_loader = DataLoader(train_dataset, batch_size=256, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=256, shuffle=False)

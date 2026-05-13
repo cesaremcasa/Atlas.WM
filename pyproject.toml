@@ -1,0 +1,58 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "atlas-wm"
+version = "3.0.0.dev0"
+description = "Atlas Structured World Model — entity-centric latent decomposition with hybrid static constraints"
+requires-python = ">=3.11"
+license = { file = "LICENSE" }
+dependencies = [
+    "torch>=2.1.2",
+    "numpy>=1.26.4",
+    "gymnasium>=0.29.1",
+    "pyyaml>=6.0.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.4",
+    "pytest-cov>=4.1.0",
+    "ruff>=0.3.0",
+    "mypy>=1.8.0",
+    "bandit>=1.7.7",
+    "pip-audit>=2.7.0",
+    "pre-commit>=3.6.0",
+    "cyclonedx-bom>=4.4.0",
+]
+train = [
+    "tensorboard>=2.15.1",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-dir]
+"" = "src"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.bandit]
+exclude_dirs = ["archive", "tests"]

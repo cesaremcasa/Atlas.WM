@@ -1,11 +1,5 @@
 import torch
-import sys
-import os
-
-# Add parent directory to path to import src
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
-from src.models.structured_dynamics import StructuredDynamics
+from atlas_wm.models.structured_dynamics import StructuredDynamics
 
 def test_dynamics_shapes():
     """Validate output shapes for all latent components."""

@@ -1,46 +1,50 @@
-import os
 import numpy as np
-import sys
-sys.path.insert(0, '.')
-from src.environments.cruel_gridworld import CruelGridworld
+from atlas_wm.environments.cruel_gridworld import CruelGridworld
 
-def generate_data(num_episodes=2000, max_steps=100, output_dir="data/raw"):
-    # FORCE Clean old files
-    if os.path.exists(output_dir):
-        import shutil
-        shutil.rmtree(output_dir)
-    os.makedirs(output_dir)
+def generate_with_exploration(num_samples=50000):
+    env = CruelGridworld()
     
-    env = CruelGridworld(grid_size=20)
     all_obs = []
     all_actions = []
     all_next_obs = []
     
-    print(f"Generating {num_episodes} CONTINUOUS episodes...")
-    print("WARNING: This will take longer due to physics calculations.")
+    obs_tuple = env.reset()
+    obs = obs_tuple[0] if isinstance(obs_tuple, tuple) else obs_tuple
     
-    for ep in range(num_episodes):
-        obs, _ = env.reset()
-        for _ in range(max_steps):
-            action = env.action_space.sample()
-            next_obs, _, _, _, _ = env.step(action)
-            
-            action_onehot = np.zeros(8)
-            action_onehot[action] = 1.0
-            
-            all_obs.append(obs)
-            all_actions.append(action_onehot)
-            all_next_obs.append(next_obs)
-            obs = next_obs
-            
-        if (ep + 1) % 200 == 0:
-            print(f"Episode {ep+1}/{num_episodes}")
+    for i in range(num_samples):
+        if np.random.random() < 0.1:
+            obs_tuple = env.reset()
+            obs = obs_tuple[0] if isinstance(obs_tuple, tuple) else obs_tuple
+        
+        action_idx = np.random.randint(0, env.action_space.n)
+        action_onehot = np.zeros(env.action_space.n)
+        action_onehot[action_idx] = 1.0
+        
+        next_obs, _, _, _, _ = env.step(action_idx)
+        
+        all_obs.append(obs.copy())
+        all_actions.append(action_onehot)
+        all_next_obs.append(next_obs.copy())
+        
+        obs = next_obs
+        
+        if (i + 1) % 10000 == 0:
+            print(f"Generated {i + 1}/{num_samples} samples...")
+    
+    obs_array = np.array(all_obs, dtype=np.float32)
+    actions_array = np.array(all_actions, dtype=np.float32)
+    next_obs_array = np.array(all_next_obs, dtype=np.float32)
+    
+    unique = len(np.unique(obs_array.reshape(obs_array.shape[0], -1), axis=0))
+    diversity = 100 * unique / obs_array.shape[0]
+    
+    print(f"\nFinal: {len(obs_array)} samples, {unique} unique ({diversity:.1f}%)")
+    
+    np.save('data/raw/observations.npy', obs_array)
+    np.save('data/raw/actions.npy', actions_array)
+    np.save('data/raw/next_observations.npy', next_obs_array)
+    
+    return True
 
-    np.save(os.path.join(output_dir, "observations.npy"), np.array(all_obs))
-    np.save(os.path.join(output_dir, "actions.npy"), np.array(all_actions))
-    np.save(os.path.join(output_dir, "next_observations.npy"), np.array(all_next_obs))
-    print(f"Saved {len(all_obs)} transitions.")
-    print(f"Shape: {np.array(all_obs).shape}")
-
-if __name__ == "__main__":
-    generate_data()
+if __name__ == '__main__':
+    generate_with_exploration(num_samples=50000)
