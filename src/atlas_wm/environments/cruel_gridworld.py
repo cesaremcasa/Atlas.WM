@@ -20,30 +20,33 @@ class CruelGridworld(gym.Env):
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
 
+        # Use self.np_random (gymnasium-seeded) for full determinism (AD-7).
+        rng = self.np_random
+
         # Walls
         self.walls = []
-        for _ in range(np.random.randint(4, 9)):
+        for _ in range(int(rng.integers(4, 9))):
             self.walls.append(
                 {
-                    "x": np.random.uniform(2, self.grid_size - 2),
-                    "y": np.random.uniform(2, self.grid_size - 2),
-                    "r": np.random.uniform(0.5, 1.5),
+                    "x": float(rng.uniform(2, self.grid_size - 2)),
+                    "y": float(rng.uniform(2, self.grid_size - 2)),
+                    "r": float(rng.uniform(0.5, 1.5)),
                 }
             )
 
         # Agent
-        self.agent_pos = np.random.uniform(2, self.grid_size - 2, size=2)
-        self.agent_vel = np.random.uniform(-1, 1, size=2)
+        self.agent_pos = rng.uniform(2, self.grid_size - 2, size=2).astype(float)
+        self.agent_vel = rng.uniform(-1, 1, size=2).astype(float)
 
         # Boxes
         self.box_positions = []
         self.box_vels = []
         for _ in range(2):
-            pos = np.random.uniform(2, self.grid_size - 2, size=2)
-            vel = np.random.uniform(-1, 1, size=2)
+            pos = rng.uniform(2, self.grid_size - 2, size=2).astype(float)
+            vel = rng.uniform(-1, 1, size=2).astype(float)
             # Ensure separation
             while np.linalg.norm(pos - self.agent_pos) < 3.0:
-                pos = np.random.uniform(2, self.grid_size - 2, size=2)
+                pos = rng.uniform(2, self.grid_size - 2, size=2).astype(float)
             self.box_positions.append(pos)
             self.box_vels.append(vel)
 
