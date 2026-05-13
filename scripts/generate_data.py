@@ -1,7 +1,5 @@
 import numpy as np
-import sys
-sys.path.insert(0, '.')
-from src.environments.cruel_gridworld import CruelGridworld
+from atlas_wm.environments.cruel_gridworld import CruelGridworld
 
 def generate_with_exploration(num_samples=50000):
     env = CruelGridworld()
