@@ -15,7 +15,7 @@ test:
 
 security:
 	bandit -r src/ -ll
-	pip-audit -r requirements.lock --severity high
+	pip-audit -r requirements.lock --progress-spinner off
 	@! grep -rE "torch\.load|pickle\.load|torch\.save" src/atlas_wm/ scripts/ \
 		|| (echo "ERROR: unsafe pickle/torch.save in prod code" && exit 1)
 

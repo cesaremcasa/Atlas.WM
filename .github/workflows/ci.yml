@@ -78,7 +78,7 @@ jobs:
       - name: bandit
         run: bandit -r src/ -ll
       - name: pip-audit
-        run: pip-audit -r requirements.lock --severity high
+        run: pip-audit -r requirements.lock --progress-spinner off
       - name: Forbid pickle in production code
         run: |
           ! grep -rE "torch\.load|pickle\.load|torch\.save" src/atlas_wm/ scripts/
