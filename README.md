@@ -5,7 +5,10 @@
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Status](https://img.shields.io/badge/status-v3.0%20in%20progress-blue.svg)](docs/Atlas-WM-v3-Architecture-Plan.md)
 
-**Status:** v2.0 architecture validated | v3.0 upgrade in progress (Block 12/13)
+**Status:** v2.0 architecture validated | v3.0 feature-complete (Block 13/13, release tag pending)
+
+See [`CHANGELOG.md`](CHANGELOG.md), the [model card](docs/MODEL_CARD.md), and
+`scripts/export_onnx.py` for the ONNX export (`pip install 'atlas-wm[export]'`).
 **Author:** Cesar Augusto
 
 A structured world model that decomposes the latent space into interpretable semantic components and enforces physical constraints through architectural guarantees rather than optimization targets.
@@ -92,7 +95,7 @@ python scripts/train.py
 | 10 — Multi-Object | Entity encoder, n_objects ∈ [3, 10] | ✅ Complete |
 | 11 — Partial Observability | Nearest-K wrapper, recurrent belief | ✅ Complete |
 | 12 — Variable Physics | Domain randomization, latent probing | ✅ Complete |
-| 13 — Release v3.0 | Model card, ONNX export, tagged release | ⏳ Pending |
+| 13 — Release v3.0 | Model card, ONNX export, CHANGELOG, tagged release | ✅ Complete (tag pending) |
 
 ---
 
