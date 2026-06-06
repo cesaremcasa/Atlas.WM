@@ -72,7 +72,8 @@ def write_manifest(manifest_path: str, manifest: dict[str, Any]) -> None:
 def load_manifest(manifest_path: str) -> dict[str, Any]:
     """Load and return the raw manifest dict from disk."""
     with open(manifest_path) as f:
-        return json.load(f)
+        manifest: dict[str, Any] = json.load(f)
+    return manifest
 
 
 def verify_manifest(manifest_path: str, key: bytes) -> list[ManifestMismatch]:

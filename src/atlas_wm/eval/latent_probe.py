@@ -73,7 +73,8 @@ def predict_ridge(x: np.ndarray, w: np.ndarray) -> np.ndarray:
     """Apply a ridge weight matrix from :func:`fit_ridge` to features ``x``."""
     n = x.shape[0]
     x_aug = np.concatenate([x, np.ones((n, 1))], axis=1)
-    return x_aug @ w
+    preds: np.ndarray = x_aug @ w
+    return preds
 
 
 def r2_score(y_true: np.ndarray, y_pred: np.ndarray) -> np.ndarray:
@@ -83,7 +84,7 @@ def r2_score(y_true: np.ndarray, y_pred: np.ndarray) -> np.ndarray:
     """
     ss_res = ((y_true - y_pred) ** 2).sum(axis=0)
     ss_tot = ((y_true - y_true.mean(axis=0)) ** 2).sum(axis=0)
-    out = np.zeros_like(ss_tot)
+    out: np.ndarray = np.zeros_like(ss_tot)
     nonzero = ss_tot > 1e-12
     out[nonzero] = 1.0 - ss_res[nonzero] / ss_tot[nonzero]
     return out
