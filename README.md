@@ -5,7 +5,10 @@
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Status](https://img.shields.io/badge/status-v3.0%20in%20progress-blue.svg)](docs/Atlas-WM-v3-Architecture-Plan.md)
 
-**Status:** v2.0 architecture validated | v3.0 upgrade in progress (Block 1/13)
+**Status:** v2.0 architecture validated | v3.0 feature-complete (Block 13/13, release tag pending)
+
+See [`CHANGELOG.md`](CHANGELOG.md), the [model card](docs/MODEL_CARD.md), and
+`scripts/export_onnx.py` for the ONNX export (`pip install 'atlas-wm[export]'`).
 **Author:** Cesar Augusto
 
 A structured world model that decomposes the latent space into interpretable semantic components and enforces physical constraints through architectural guarantees rather than optimization targets.
@@ -80,19 +83,19 @@ python scripts/train.py
 
 | Block | Theme | Status |
 |-------|-------|--------|
-| 1 — Hygiene & Quarantine | Repo cleanup, `src/atlas_wm/` package | ✅ In progress |
-| 2 — CI & Lockfile | GitHub Actions, `requirements.lock`, SBOM | ⏳ Pending |
-| 3 — Safetensors I/O | Remove `torch.save/load`, safetensors migration | ⏳ Pending |
-| 4 — Checkpoint Signing | HMAC-SHA256 manifest | ⏳ Pending |
-| 5 — Hybrid Static | `z_static_immutable` + `z_static_slow` | ⏳ Pending |
-| 6 — Identifiability | Intervention loss, action-invariance critic | ⏳ Pending |
-| 7 — Encoder Tests | Full unit test coverage for `ContinuousEncoder` | ⏳ Pending |
-| 8 — Physics Tests | Environment contract tests + chaos tripwire | ⏳ Pending |
-| 9 — Determinism Canary | Seeded training reproducibility | ⏳ Pending |
-| 10 — Multi-Object | Entity encoder, n_objects ∈ [3, 10] | ⏳ Pending |
-| 11 — Partial Observability | Nearest-K wrapper, recurrent belief | ⏳ Pending |
-| 12 — Variable Physics | Domain randomization, latent probing | ⏳ Pending |
-| 13 — Release v3.0 | Model card, ONNX export, tagged release | ⏳ Pending |
+| 1 — Hygiene & Quarantine | Repo cleanup, `src/atlas_wm/` package | ✅ Complete |
+| 2 — CI & Lockfile | GitHub Actions, `requirements.lock`, SBOM | ✅ Complete |
+| 3 — Safetensors I/O | Remove `torch.save/load`, safetensors migration | ✅ Complete |
+| 4 — Checkpoint Signing | HMAC-SHA256 manifest | ✅ Complete |
+| 5 — Hybrid Static | `z_static_immutable` + `z_static_slow` | ✅ Complete |
+| 6 — Identifiability | Intervention loss, action-invariance critic | ✅ Complete |
+| 7 — Encoder Tests | Full unit test coverage for `ContinuousEncoder` | ✅ Complete |
+| 8 — Physics Tests | Environment contract tests + chaos tripwire | ✅ Complete |
+| 9 — Determinism Canary | Seeded training reproducibility | ✅ Complete |
+| 10 — Multi-Object | Entity encoder, n_objects ∈ [3, 10] | ✅ Complete |
+| 11 — Partial Observability | Nearest-K wrapper, recurrent belief | ✅ Complete |
+| 12 — Variable Physics | Domain randomization, latent probing | ✅ Complete |
+| 13 — Release v3.0 | Model card, ONNX export, CHANGELOG, tagged release | ✅ Complete (tag pending) |
 
 ---
 

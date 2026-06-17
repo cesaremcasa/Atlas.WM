@@ -1,0 +1,45 @@
+# v3.0 variable-physics experiment (Block 12).
+# Gravity and friction are resampled per episode; Gaussian process noise is
+# injected each step. Validates AD-2: variable physics should be decodable from
+# z_static_slow (see scripts/probe_physics.py / atlas_wm.eval.latent_probe).
+
+_base: "../base.yaml"
+
+model:
+  d_static_immutable: 16
+  d_static_slow: 16
+  d_dynamic: 32
+  d_controllable: 32
+  input_dim: 6
+
+environment:
+  grid_size: 20
+  n_objects: 3
+  dt: 0.5
+  randomize_physics: true
+  process_noise_std: 0.05
+  gravity_range: [2.0, 8.0]
+  friction_agent_range: [0.90, 0.99]
+  friction_box_range: [0.95, 0.995]
+  action_space_size: 8
+
+data:
+  data_dir: "data/processed"
+  num_samples: 50000
+  seed: 12
+
+training:
+  batch_size: 256
+  learning_rate: 3.0e-4
+  num_epochs: 100
+  early_stopping_patience: 15
+  grad_clip_norm: 0.5
+  lambda_slow_drift: 0.1
+  lambda_intervention: 0.5
+  lambda_action_invariance: 0.1
+
+probing:
+  latent_key: "z_static_slow"
+  ridge_alpha: 1.0
+  train_frac: 0.8
+  targets: ["gravity", "friction_agent", "friction_box"]

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "atlas-wm"
-version = "3.0.0.dev0"
+version = "3.0.0"
 description = "Atlas Structured World Model — entity-centric latent decomposition with hybrid static constraints"
 requires-python = ">=3.11"
 license = { file = "LICENSE" }
@@ -29,6 +29,10 @@ dev = [
 ]
 train = [
     "tensorboard>=2.15.1",
+]
+export = [
+    "onnx>=1.16.0",
+    "onnxruntime>=1.18.0",
 ]
 
 [tool.setuptools.packages.find]

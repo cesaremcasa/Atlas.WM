@@ -32,7 +32,8 @@ class ActionInvarianceCritic(nn.Module):
         )
 
     def forward(self, z_imm: torch.Tensor) -> torch.Tensor:
-        return self.net(z_imm)
+        logits: torch.Tensor = self.net(z_imm)
+        return logits
 
 
 def critic_loss(

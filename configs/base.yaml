@@ -16,6 +16,12 @@ environment:
   friction_agent: 0.96
   friction_box: 0.98
   action_space_size: 8
+  # Block 12 — variable physics & process noise. Defaults keep fixed physics.
+  randomize_physics: false
+  process_noise_std: 0.0
+  gravity_range: [2.0, 8.0]
+  friction_agent_range: [0.90, 0.99]
+  friction_box_range: [0.95, 0.995]
 
 data:
   data_dir: "data/processed"
