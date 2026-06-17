@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "atlas-wm"
-version = "3.0.0.dev0"
+version = "3.0.0"
 description = "Atlas Structured World Model — entity-centric latent decomposition with hybrid static constraints"
 requires-python = ">=3.11"
 license = { file = "LICENSE" }
