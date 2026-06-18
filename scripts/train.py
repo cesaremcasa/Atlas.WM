@@ -18,6 +18,12 @@ from atlas_wm.models.structured_dynamics import StructuredDynamics
 
 
 def normalize_data(data_dir: str) -> None:
+    import os
+
+    sentinel = os.path.join(data_dir, ".normalized")
+    if os.path.exists(sentinel):
+        print("Data already normalized — skipping")
+        return
     for split in ["train", "val", "test"]:
         obs = np.load(f"{data_dir}/{split}_obs.npy")
         next_obs = np.load(f"{data_dir}/{split}_next_obs.npy")
@@ -25,6 +31,7 @@ def normalize_data(data_dir: str) -> None:
         next_obs = next_obs / 20.0
         np.save(f"{data_dir}/{split}_obs.npy", obs)
         np.save(f"{data_dir}/{split}_next_obs.npy", next_obs)
+    open(sentinel, "w").close()
     print("Data normalized to [0, 1]")
 
 
