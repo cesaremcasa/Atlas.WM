@@ -1,57 +1,80 @@
+"""Split raw Atlas.WM data into train / val / test sets.
+
+Usage::
+
+    python scripts/split_data.py                          # defaults
+    python scripts/split_data.py --raw-dir data/raw --processed-dir data/processed
+    python scripts/split_data.py --force                  # re-split even if already done
+"""
+
+from __future__ import annotations
+
+import argparse
 import os
 
 import numpy as np
 
-# Paths
-data_dir = "data/raw"
-processed_dir = "data/processed"
 
-# Load raw data
-obs = np.load(os.path.join(data_dir, "observations.npy"))
-actions = np.load(os.path.join(data_dir, "actions.npy"))
-next_obs = np.load(os.path.join(data_dir, "next_observations.npy"))
+def split_data(
+    raw_dir: str = "data/raw",
+    processed_dir: str = "data/processed",
+    train_frac: float = 0.8,
+    val_frac: float = 0.1,
+    force: bool = False,
+) -> None:
+    sentinel = os.path.join(processed_dir, ".split")
+    if os.path.exists(sentinel) and not force:
+        print("Data already split — skipping (use --force to re-split)")
+        return
 
-# Block 12: ground-truth physics labels are optional (only present for
-# variable-physics datasets). Split them alongside the transitions when found.
-physics_path = os.path.join(data_dir, "physics_params.npy")
-physics = np.load(physics_path) if os.path.exists(physics_path) else None
+    obs = np.load(os.path.join(raw_dir, "observations.npy"))
+    actions = np.load(os.path.join(raw_dir, "actions.npy"))
+    next_obs = np.load(os.path.join(raw_dir, "next_observations.npy"))
 
-print(f"Raw data shape: {obs.shape}")
+    physics_path = os.path.join(raw_dir, "physics_params.npy")
+    physics = np.load(physics_path) if os.path.exists(physics_path) else None
 
-# Split parameters
-total_samples = len(obs)
-train_end = int(0.8 * total_samples)
-val_end = int(0.9 * total_samples)
+    total = len(obs)
+    train_end = int(train_frac * total)
+    val_end = int((train_frac + val_frac) * total)
 
-# Create output directory
-os.makedirs(processed_dir, exist_ok=True)
+    os.makedirs(processed_dir, exist_ok=True)
 
-# Split and save
-print("Splitting and saving data...")
+    splits = {
+        "train": (slice(None, train_end), train_end),
+        "val": (slice(train_end, val_end), val_end - train_end),
+        "test": (slice(val_end, None), total - val_end),
+    }
 
-# Train
-np.save(os.path.join(processed_dir, "train_obs.npy"), obs[:train_end])
-np.save(os.path.join(processed_dir, "train_actions.npy"), actions[:train_end])
-np.save(os.path.join(processed_dir, "train_next_obs.npy"), next_obs[:train_end])
+    for name, (sl, count) in splits.items():
+        np.save(os.path.join(processed_dir, f"{name}_obs.npy"), obs[sl])
+        np.save(os.path.join(processed_dir, f"{name}_actions.npy"), actions[sl])
+        np.save(os.path.join(processed_dir, f"{name}_next_obs.npy"), next_obs[sl])
+        if physics is not None:
+            np.save(os.path.join(processed_dir, f"{name}_physics.npy"), physics[sl])
+        print(f"  {name}: {count} samples")
 
-# Val
-np.save(os.path.join(processed_dir, "val_obs.npy"), obs[train_end:val_end])
-np.save(os.path.join(processed_dir, "val_actions.npy"), actions[train_end:val_end])
-np.save(os.path.join(processed_dir, "val_next_obs.npy"), next_obs[train_end:val_end])
+    if physics is not None:
+        print("Physics labels split (variable-physics dataset)")
 
-# Test
-np.save(os.path.join(processed_dir, "test_obs.npy"), obs[val_end:])
-np.save(os.path.join(processed_dir, "test_actions.npy"), actions[val_end:])
-np.save(os.path.join(processed_dir, "test_next_obs.npy"), next_obs[val_end:])
+    open(sentinel, "w").close()
+    print(f"Done — processed data in {processed_dir}/")
 
-# Physics labels (variable-physics datasets only)
-if physics is not None:
-    np.save(os.path.join(processed_dir, "train_physics.npy"), physics[:train_end])
-    np.save(os.path.join(processed_dir, "val_physics.npy"), physics[train_end:val_end])
-    np.save(os.path.join(processed_dir, "test_physics.npy"), physics[val_end:])
-    print("Physics labels split (variable-physics dataset).")
 
-print("Done.")
-print(f"Train: {train_end} samples")
-print(f"Val: {val_end - train_end} samples")
-print(f"Test: {total_samples - val_end} samples")
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Split raw Atlas.WM data")
+    parser.add_argument("--raw-dir", default="data/raw", help="Directory with raw .npy files")
+    parser.add_argument(
+        "--processed-dir", default="data/processed", help="Output directory for split files"
+    )
+    parser.add_argument("--force", action="store_true", help="Re-split even if already done")
+    args = parser.parse_args()
+    split_data(
+        raw_dir=args.raw_dir,
+        processed_dir=args.processed_dir,
+        force=args.force,
+    )
+
+
+if __name__ == "__main__":
+    main()

@@ -6,10 +6,10 @@
 _base: "../base.yaml"
 
 model:
-  d_static_immutable: 16
-  d_static_slow: 16
+  d_static_immutable: 8
+  d_static_slow: 8
   d_dynamic: 32
-  d_controllable: 32
+  d_controllable: 16
   input_dim: 6
 
 environment:
@@ -26,7 +26,7 @@ environment:
 data:
   data_dir: "data/processed"
   num_samples: 50000
-  seed: 12
+  seed: 42
 
 training:
   batch_size: 256
@@ -34,9 +34,11 @@ training:
   num_epochs: 100
   early_stopping_patience: 15
   grad_clip_norm: 0.5
+  lr_scheduler_patience: 3
+  lr_scheduler_factor: 0.5
   lambda_slow_drift: 0.1
-  lambda_intervention: 0.5
-  lambda_action_invariance: 0.1
+  lambda_action_invariance: 0.01
+  lambda_var_penalty: 0.01
 
 probing:
   latent_key: "z_static_slow"

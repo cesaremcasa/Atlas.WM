@@ -2,11 +2,13 @@
 # Override values in configs/experiments/*.yaml
 
 model:
-  d_static_immutable: 16   # architectural passthrough (AD-2)
-  d_static_slow: 16        # soft residual with drift penalty (AD-2)
+  # Latent layout: z_full = [z_static(16) | z_dynamic(32) | z_controllable(16)] = 64 dims
+  # z_static = [z_static_immutable(8) | z_static_slow(8)]  (AD-2)
+  d_static_immutable: 8    # hard passthrough — bit-identical across time (AD-2)
+  d_static_slow: 8         # soft residual with drift penalty (AD-2)
   d_dynamic: 32
-  d_controllable: 32
-  input_dim: 6             # 3 objects x 2 coords
+  d_controllable: 16
+  input_dim: 6             # 3 objects × 2 coords
 
 environment:
   grid_size: 20
@@ -37,8 +39,8 @@ training:
   lr_scheduler_patience: 3
   lr_scheduler_factor: 0.5
   lambda_slow_drift: 0.1
-  lambda_intervention: 0.5
-  lambda_action_invariance: 0.1
+  lambda_action_invariance: 0.01
+  lambda_var_penalty: 0.01
 
 checkpointing:
   checkpoint_dir: "checkpoints"
