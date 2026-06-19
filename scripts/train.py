@@ -23,6 +23,7 @@ from torch.utils.data import DataLoader
 from atlas_wm.checkpointing.io import make_metadata, save_checkpoint
 from atlas_wm.data.dataset import ATLASDataset
 from atlas_wm.models.continuous_encoder import ContinuousEncoder
+from atlas_wm.models.decoder import Decoder
 from atlas_wm.models.identifiability import (
     ActionInvarianceCritic,
     critic_loss,
@@ -109,12 +110,14 @@ def train(args: argparse.Namespace) -> None:
     dynamics = StructuredDynamics(
         d_static=d_static, d_dynamic=d_dynamic, d_controllable=d_controllable, action_dim=action_dim
     ).to(device)
+    d_full = d_static + d_dynamic + d_controllable
+    decoder = Decoder(d_full=d_full, output_dim=input_dim).to(device)
     critic = ActionInvarianceCritic(d_immutable=encoder.d_immutable, action_dim=action_dim).to(
         device
     )
 
     lr: float = tcfg["learning_rate"]
-    params = list(encoder.parameters()) + list(dynamics.parameters())
+    params = list(encoder.parameters()) + list(dynamics.parameters()) + list(decoder.parameters())
     optimizer = optim.Adam(params, lr=lr)
     critic_optimizer = optim.Adam(critic.parameters(), lr=lr * 3)
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(
@@ -123,9 +126,10 @@ def train(args: argparse.Namespace) -> None:
         factor=tcfg["lr_scheduler_factor"],
     )
 
+    lam_recon: float = tcfg.get("lambda_recon", 1.0)
     lam_drift: float = tcfg["lambda_slow_drift"]
     lam_adv: float = tcfg["lambda_action_invariance"]
-    lam_var: float = tcfg.get("lambda_var_penalty", 0.01)
+    lam_var: float = tcfg.get("lambda_var_penalty", 0.001)
     grad_clip: float = tcfg["grad_clip_norm"]
     patience: int = tcfg["early_stopping_patience"]
     num_epochs: int = tcfg["num_epochs"]
@@ -161,15 +165,21 @@ def train(args: argparse.Namespace) -> None:
             c_loss = critic_loss(critic, z_t["z_static_immutable"].detach(), action)
             critic_optimizer.zero_grad()
             c_loss.backward()
+            torch.nn.utils.clip_grad_norm_(critic.parameters(), grad_clip)
             critic_optimizer.step()
 
+            recon_loss = nn.functional.mse_loss(decoder(z_t["z_full"]), obs)
             pred_loss = nn.functional.mse_loss(z_t1_pred["z_full"], z_t1_true["z_full"])
             z_var = z_t1_pred["z_full"].var(dim=0).mean()
             var_penalty = torch.clamp(1.0 - z_var, min=0)
             drift_penalty = z_t1_pred["delta_slow"].norm(dim=-1).mean()
             adv_loss = encoder_adversarial_loss(critic, z_t["z_static_immutable"], action)
             loss = (
-                pred_loss + lam_var * var_penalty + lam_drift * drift_penalty + lam_adv * adv_loss
+                lam_recon * recon_loss
+                + pred_loss
+                + lam_var * var_penalty
+                + lam_drift * drift_penalty
+                + lam_adv * adv_loss
             )
 
             if torch.isnan(loss):
@@ -190,7 +200,9 @@ def train(args: argparse.Namespace) -> None:
 
         encoder.eval()
         dynamics.eval()
-        val_loss = 0.0
+        decoder.eval()
+        val_pred_loss = 0.0
+        val_recon_loss = 0.0
 
         with torch.no_grad():
             for batch in val_loader:
@@ -200,16 +212,20 @@ def train(args: argparse.Namespace) -> None:
                 z_t = encoder(obs)
                 z_t1_pred = dynamics(z_t, action)
                 z_t1_true = encoder(next_obs)
-                loss = nn.functional.mse_loss(z_t1_pred["z_full"], z_t1_true["z_full"])
-                val_loss += loss.item()
+                val_pred_loss += nn.functional.mse_loss(
+                    z_t1_pred["z_full"], z_t1_true["z_full"]
+                ).item()
+                val_recon_loss += nn.functional.mse_loss(decoder(z_t["z_full"]), obs).item()
 
-        val_loss /= max(len(val_loader), 1)
+        val_pred_loss /= max(len(val_loader), 1)
+        val_recon_loss /= max(len(val_loader), 1)
+        val_loss = val_pred_loss + lam_recon * val_recon_loss
         scheduler.step(val_loss)
         current_lr = optimizer.param_groups[0]["lr"]
 
         print(
             f"Epoch {epoch + 1:3d} | Train: {train_loss:.6f} | "
-            f"Val: {val_loss:.6f} | LR: {current_lr:.2e}"
+            f"Val pred: {val_pred_loss:.6f} recon: {val_recon_loss:.6f} | LR: {current_lr:.2e}"
         )
 
         if val_loss < best_val_loss:
@@ -220,6 +236,7 @@ def train(args: argparse.Namespace) -> None:
                 combined = {
                     **{f"encoder.{k}": v for k, v in encoder.state_dict().items()},
                     **{f"dynamics.{k}": v for k, v in dynamics.state_dict().items()},
+                    **{f"decoder.{k}": v for k, v in decoder.state_dict().items()},
                 }
                 metadata = make_metadata(
                     model_class="ContinuousEncoder+StructuredDynamics",
