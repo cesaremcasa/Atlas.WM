@@ -67,7 +67,7 @@ if $RUN_PROBE; then
   python scripts/probe_physics.py \
     --checkpoint "$CHECKPOINT" \
     --data-dir data/processed \
-    --latent-key z_static_slow
+    --split val
 else
   step "4/4 — Latent probe (skipped — pass --probe to enable)"
 fi
