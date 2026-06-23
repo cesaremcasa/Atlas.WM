@@ -80,7 +80,8 @@ class EpisodeATLASDataset(Dataset):
         i_arr = np.arange(k - 1, n)
         prev = np.where(i_arr >= k, cumsum[i_arr - k], 0)
         valid_mask = cumsum[i_arr] == prev
-        return i_arr[valid_mask]
+        result: np.ndarray = i_arr[valid_mask]
+        return result
 
     def __len__(self) -> int:
         return len(self.valid_indices)

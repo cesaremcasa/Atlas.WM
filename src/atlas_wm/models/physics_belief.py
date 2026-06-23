@@ -43,7 +43,8 @@ class PhysicsBeliefEncoder(nn.Module):
             z_static_slow: [B, d_slow]
         """
         _, h_n = self.gru(obs_window)  # h_n: [1, B, hidden_dim]
-        return self.proj(h_n.squeeze(0))  # [B, d_slow]
+        out: torch.Tensor = self.proj(h_n.squeeze(0))
+        return out  # [B, d_slow]
 
 
 class PhysicsHead(nn.Module):
