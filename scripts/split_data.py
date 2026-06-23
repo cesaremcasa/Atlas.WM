@@ -34,6 +34,9 @@ def split_data(
     physics_path = os.path.join(raw_dir, "physics_params.npy")
     physics = np.load(physics_path) if os.path.exists(physics_path) else None
 
+    episode_ids_path = os.path.join(raw_dir, "episode_ids.npy")
+    episode_ids = np.load(episode_ids_path) if os.path.exists(episode_ids_path) else None
+
     total = len(obs)
     train_end = int(train_frac * total)
     val_end = int((train_frac + val_frac) * total)
@@ -52,10 +55,17 @@ def split_data(
         np.save(os.path.join(processed_dir, f"{name}_next_obs.npy"), next_obs[sl])
         if physics is not None:
             np.save(os.path.join(processed_dir, f"{name}_physics.npy"), physics[sl])
+        if episode_ids is not None:
+            np.save(os.path.join(processed_dir, f"{name}_episode_ids.npy"), episode_ids[sl])
         print(f"  {name}: {count} samples")
 
+    extras = []
     if physics is not None:
-        print("Physics labels split (variable-physics dataset)")
+        extras.append("physics labels")
+    if episode_ids is not None:
+        extras.append("episode IDs")
+    if extras:
+        print(f"Additional arrays split: {', '.join(extras)}")
 
     open(sentinel, "w").close()
     print(f"Done — processed data in {processed_dir}/")
