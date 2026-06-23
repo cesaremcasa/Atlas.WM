@@ -26,7 +26,9 @@ env/
 ENV/
 .venv/
 
-# Data — processed splits are reproducible from raw, not committed
+# Data — raw and processed are reproducible from generate_data.py --seed,
+# not committed (deterministic since Block 12)
+data/raw/
 data/processed/
 
 # Checkpoints — .pt files are unsafe (pickle); .safetensors are committed via manifest
