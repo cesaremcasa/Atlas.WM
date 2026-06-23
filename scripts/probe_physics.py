@@ -7,17 +7,28 @@ AD-2 prediction: ``z_static_slow`` should achieve high R² (variable physics liv
 there), while ``z_static_immutable`` should achieve near-zero R² (it is a hard
 passthrough and must not encode episode-varying quantities).
 
+Also supports probing the PhysicsBeliefEncoder (GRU) via --belief-checkpoint.
+
 Usage:
+    # Single-step encoder probe (baseline)
     python scripts/probe_physics.py \
         --checkpoint checkpoints/best_model.safetensors \
+        --data-dir data/processed --split val
+
+    # Belief encoder probe (expected high R²)
+    python scripts/probe_physics.py \
+        --checkpoint checkpoints/best_model.safetensors \
+        --belief-checkpoint checkpoints/physics_belief.safetensors \
         --data-dir data/processed --split val
 """
 
 from __future__ import annotations
 
 import argparse
+import os
 
 import numpy as np
+import torch
 
 from atlas_wm.checkpointing.io import load_checkpoint
 from atlas_wm.eval.latent_probe import probe_latent
@@ -42,9 +53,94 @@ def _load_encoder(checkpoint_path: str) -> ContinuousEncoder:
     return encoder
 
 
+def _probe_belief_encoder(
+    belief_checkpoint: str,
+    data_dir: str,
+    split: str,
+    ridge_alpha: float,
+    train_frac: float,
+) -> None:
+    from atlas_wm.data.episode_dataset import EpisodeATLASDataset
+    from atlas_wm.eval.latent_probe import probe_from_arrays
+    from atlas_wm.models.physics_belief import PhysicsBeliefEncoder
+
+    state_dict, meta = load_checkpoint(
+        belief_checkpoint,
+        expected_model_class="PhysicsBeliefEncoder",
+        strict_env=False,
+        allow_unsigned=True,
+    )
+    gru_input_dim: int = int(meta.get("gru_input_dim", meta.get("obs_dim", "6")))
+    d_slow: int = int(meta["d_slow"])
+    window_k: int = int(meta["window_k"])
+
+    belief_enc = PhysicsBeliefEncoder(obs_dim=gru_input_dim, d_slow=d_slow, hidden_dim=128)
+    belief_enc_state = {
+        k[len("belief_enc.") :]: v for k, v in state_dict.items() if k.startswith("belief_enc.")
+    }
+    belief_enc.load_state_dict(belief_enc_state)
+    belief_enc.eval()
+
+    ids_path = os.path.join(data_dir, f"{split}_episode_ids.npy")
+    if not os.path.exists(ids_path):
+        print(
+            f"WARNING: episode IDs not found at {ids_path}. "
+            "Re-generate data with generate_data.py + split_data.py."
+        )
+        return
+
+    try:
+        ds = EpisodeATLASDataset(data_dir, split=split, window_k=window_k)
+    except FileNotFoundError as e:
+        print(f"WARNING: {e}")
+        return
+
+    if ds.physics is None:
+        print("WARNING: no physics labels in dataset — skipping belief probe")
+        return
+
+    use_actions = "action_dim" in meta
+    all_z, all_physics = [], []
+    with torch.no_grad():
+        for i in range(len(ds)):
+            item = ds[i]
+            obs_w = item["obs_window"].unsqueeze(0)  # [1, K, obs_dim]
+            if use_actions:
+                act_w = item["action_window"].unsqueeze(0)  # [1, K, action_dim]
+                sa_w = torch.cat([obs_w, act_w], dim=-1)
+                z = belief_enc(sa_w)
+            else:
+                z = belief_enc(obs_w)
+            all_z.append(z.squeeze(0).numpy())
+            all_physics.append(item["physics"].numpy())
+
+    z_arr = np.stack(all_z)
+    physics_arr = np.stack(all_physics)
+
+    print(f"\n── PhysicsBeliefEncoder probe (window_k={window_k}, {len(ds)} windows) ──")
+    result = probe_from_arrays(
+        z_arr,
+        physics_arr,
+        target_names=TARGET_NAMES,
+        latent_key="z_static_slow (GRU)",
+        alpha=ridge_alpha,
+        train_frac=train_frac,
+    )
+    print(result)
+    print(
+        "Expectation: R²≥0.70 for gravity and friction when model has converged\n"
+        "(single-step encoder gives R²≈0 — physics are only observable through dynamics)"
+    )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Probe encoder for physics identifiability")
     parser.add_argument("--checkpoint", default="checkpoints/best_model.safetensors")
+    parser.add_argument(
+        "--belief-checkpoint",
+        default=None,
+        help="Optional PhysicsBeliefEncoder checkpoint (.pt) — produced by train_physics_belief.py",
+    )
     parser.add_argument("--data-dir", default="data/processed")
     parser.add_argument("--split", default="val")
     parser.add_argument("--ridge-alpha", type=float, default=1.0)
@@ -52,11 +148,17 @@ def main() -> None:
     args = parser.parse_args()
 
     obs = np.load(f"{args.data_dir}/{args.split}_obs.npy")
-    physics = np.load(f"{args.data_dir}/{args.split}_physics.npy")
+    physics_path = f"{args.data_dir}/{args.split}_physics.npy"
+    if not os.path.exists(physics_path):
+        print(f"ERROR: physics labels not found at {physics_path}")
+        print("This probe requires a variable-physics dataset (--randomize-physics).")
+        return
 
+    physics = np.load(physics_path)
     encoder = _load_encoder(args.checkpoint)
 
-    print(f"Probing {len(obs)} samples from split={args.split!r}\n")
+    print(f"── Single-step encoder probe (baseline, {len(obs)} samples) ──")
+    print(f"   split={args.split!r}, checkpoint={args.checkpoint}\n")
     for latent_key in ("z_static_slow", "z_static_immutable", "z_dynamic"):
         result = probe_latent(
             encoder,
@@ -72,8 +174,19 @@ def main() -> None:
 
     print(
         "Expectation (AD-2): R²[z_static_slow] high, R²[z_static_immutable] ~0.\n"
-        "A passthrough sub-space that encodes variable physics is a decomposition leak."
+        "NOTE: single-step MLP encoder gives R²≈0 by design — physics require\n"
+        "temporal context. Use PhysicsBeliefEncoder (--belief-checkpoint) for\n"
+        "proper physics identification."
     )
+
+    if args.belief_checkpoint:
+        _probe_belief_encoder(
+            args.belief_checkpoint,
+            args.data_dir,
+            args.split,
+            args.ridge_alpha,
+            args.train_frac,
+        )
 
 
 if __name__ == "__main__":

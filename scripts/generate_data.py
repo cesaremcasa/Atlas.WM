@@ -25,6 +25,7 @@ def generate_with_exploration(
     process_noise_std: float = 0.0,
     seed: int | None = None,
     out_dir: str = "data/raw",
+    episode_reset_prob: float = 0.1,
 ) -> bool:
     """Generate (obs, action, next_obs) transitions via random exploration.
 
@@ -35,6 +36,9 @@ def generate_with_exploration(
         seed: If set, makes generation reproducible (env resets + action/reset
             sampling are seeded). If None, legacy global-RNG behavior is used.
         out_dir: Output directory for the .npy files.
+        episode_reset_prob: Probability of resetting the environment at each step.
+            Default 0.1 gives mean episode length ~10. Use 0.02 for mean ~50 steps
+            (better for PhysicsBeliefEncoder training with longer windows).
 
     Returns:
         True on success.
@@ -60,13 +64,14 @@ def generate_with_exploration(
     all_actions = []
     all_next_obs = []
     all_physics = []
+    all_episode_ids: list[int] = []
 
     info = reset_env()
     obs = env._get_obs()
 
     for i in range(num_samples):
         reset_draw = rng.random() if rng is not None else np.random.random()
-        if reset_draw < 0.1:
+        if reset_draw < episode_reset_prob:
             info = reset_env()
             obs = env._get_obs()
 
@@ -83,6 +88,7 @@ def generate_with_exploration(
         all_actions.append(action_onehot)
         all_next_obs.append(next_obs.copy())
         all_physics.append([info[k] for k in PHYSICS_KEYS])
+        all_episode_ids.append(episode)
 
         obs = next_obs
 
@@ -93,11 +99,15 @@ def generate_with_exploration(
     actions_array = np.array(all_actions, dtype=np.float32)
     next_obs_array = np.array(all_next_obs, dtype=np.float32)
     physics_array = np.array(all_physics, dtype=np.float32)
+    episode_ids_array = np.array(all_episode_ids, dtype=np.int64)
 
     unique = len(np.unique(obs_array.reshape(obs_array.shape[0], -1), axis=0))
     diversity = 100 * unique / obs_array.shape[0]
 
+    n_episodes = len(np.unique(episode_ids_array))
+    avg_ep_len = len(obs_array) / max(n_episodes, 1)
     print(f"\nFinal: {len(obs_array)} samples, {unique} unique ({diversity:.1f}%)")
+    print(f"Episodes: {n_episodes} (avg length {avg_ep_len:.1f} steps)")
     if randomize_physics:
         for j, key in enumerate(PHYSICS_KEYS):
             col = physics_array[:, j]
@@ -108,6 +118,7 @@ def generate_with_exploration(
     np.save(os.path.join(out_dir, "actions.npy"), actions_array)
     np.save(os.path.join(out_dir, "next_observations.npy"), next_obs_array)
     np.save(os.path.join(out_dir, "physics_params.npy"), physics_array)
+    np.save(os.path.join(out_dir, "episode_ids.npy"), episode_ids_array)
 
     return True
 
@@ -133,6 +144,13 @@ def main() -> None:
         help="Seed for reproducible generation. Omit for legacy global-RNG behavior.",
     )
     parser.add_argument("--out-dir", default="data/raw")
+    parser.add_argument(
+        "--episode-reset-prob",
+        type=float,
+        default=0.1,
+        help="Probability of resetting per step. 0.1 → mean ~10 steps/episode (default). "
+        "Use 0.02 for mean ~50 steps (needed for PhysicsBeliefEncoder with window_k>=20).",
+    )
     args = parser.parse_args()
 
     generate_with_exploration(
@@ -141,6 +159,7 @@ def main() -> None:
         process_noise_std=args.process_noise_std,
         seed=args.seed,
         out_dir=args.out_dir,
+        episode_reset_prob=args.episode_reset_prob,
     )
 
 

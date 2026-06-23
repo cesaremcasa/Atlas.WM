@@ -183,3 +183,59 @@ def probe_latent(
         latent_key=latent_key,
         target_names=list(target_names),
     )
+
+
+def probe_from_arrays(
+    feats: np.ndarray,
+    targets: np.ndarray,
+    latent_key: str = "z_static_slow",
+    target_names: list[str] | None = None,
+    alpha: float = 1.0,
+    train_frac: float = 0.8,
+) -> ProbeResult:
+    """Fit a linear probe directly from pre-computed feature arrays.
+
+    Like :func:`probe_latent` but skips the encoding step — useful when the
+    latent has already been computed (e.g. PhysicsBeliefEncoder outputs).
+
+    Args:
+        feats: [N, d_latent] pre-computed latent features.
+        targets: [N, d_target] ground-truth values.
+        latent_key: Label for reporting only.
+        target_names: Optional names for each target column.
+        alpha: Ridge regularization strength.
+        train_frac: Fraction used to fit the probe.
+
+    Returns:
+        ProbeResult with per-target and mean R² on the held-out split.
+    """
+    feats = np.asarray(feats, dtype=np.float64)
+    targets = np.asarray(targets, dtype=np.float64)
+    if targets.ndim == 1:
+        targets = targets[:, None]
+    if target_names is None:
+        target_names = [f"target_{i}" for i in range(targets.shape[1])]
+
+    n = len(feats)
+    split = int(train_frac * n)
+    if split < 1 or split >= n:
+        raise ValueError(f"train_frac={train_frac} yields an empty split for N={n}")
+
+    x_tr, x_te = feats[:split], feats[split:]
+    y_tr, y_te = targets[:split], targets[split:]
+
+    mu = x_tr.mean(axis=0)
+    sigma = x_tr.std(axis=0) + 1e-8
+    x_tr = (x_tr - mu) / sigma
+    x_te = (x_te - mu) / sigma
+
+    w = fit_ridge(x_tr, y_tr, alpha=alpha)
+    y_pred = predict_ridge(x_te, w)
+    r2 = r2_score(y_te, y_pred)
+
+    return ProbeResult(
+        r2_per_target=r2,
+        r2_mean=float(r2.mean()),
+        latent_key=latent_key,
+        target_names=list(target_names),
+    )
