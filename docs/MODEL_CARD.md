@@ -1,11 +1,11 @@
-# Model Card — Atlas.WM v3.0
+# Model Card — Atlas.WM v3.1
 
 A structured world model that decomposes its latent space into interpretable
 components with **architectural** (not merely learned) guarantees.
 
 ## Model details
 
-- **Name / version:** Atlas.WM 3.0.0
+- **Name / version:** Atlas.WM 3.1.0
 - **Type:** Latent-space world model (encoder + structured one-step dynamics)
 - **Author:** Cesar Augusto
 - **License:** MIT
@@ -20,6 +20,8 @@ components with **architectural** (not merely learned) guarantees.
 | `StructuredDynamics` | `(z, action[B,8]) → z'` | One-step latent transition |
 | `ActionInvarianceCritic` | `z_static_immutable → action` | Adversary enforcing identifiability (AD-3) |
 | `EntityEncoder` | `entities → z` | Permutation-equivariant variant for variable object counts |
+| `PhysicsBeliefEncoder` | `obs_window[B,K,6] → z_static_slow[B,8]` | GRU over K consecutive obs → physics belief (Block 14) |
+| `PhysicsHead` | `z_static_slow[B,8] → physics_hat[B,3]` | Supervised auxiliary head for physics parameter prediction |
 
 ### Latent layout (`z_full`, width 64)
 
@@ -65,6 +67,9 @@ components with **architectural** (not merely learned) guarantees.
   vs. the immutable passthrough — direct evidence the decomposition routes
   variable physics where intended. (R² is near zero on an untrained encoder, as
   expected; train before interpreting.)
+- **PhysicsBeliefEncoder probe** (Block 14): ridge R² of physics decoded from
+  the GRU's output over a K-step window. Expected R²≥0.70 for gravity and
+  friction after training; single-step MLP gives R²≈0 by design.
 - **ONNX parity:** exported graphs match PyTorch within `rtol=1e-4`, and the
   immutable passthrough is preserved in the exported `dynamics.onnx`.
 
