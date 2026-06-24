@@ -38,8 +38,20 @@ def main() -> None:
         allow_unsigned=True,
     )
 
-    encoder = ContinuousEncoder(input_dim=6, d_static=16, d_dynamic=32, d_controllable=16)
-    dynamics = StructuredDynamics(d_static=16, d_dynamic=32, d_controllable=16, action_dim=8)
+    # Infer architecture dimensions from the state dict so that any checkpoint
+    # (including ones trained with non-default sizes) loads without shape errors.
+    input_dim = state_dict["encoder.shared.0.weight"].shape[1]
+    d_static = state_dict["encoder.static_head.2.weight"].shape[0]
+    d_dynamic = state_dict["encoder.dynamic_head.2.weight"].shape[0]
+    d_controllable = state_dict["encoder.controllable_head.2.weight"].shape[0]
+    action_dim = state_dict["dynamics.control_net.0.weight"].shape[1] - d_controllable
+
+    encoder = ContinuousEncoder(
+        input_dim=input_dim, d_static=d_static, d_dynamic=d_dynamic, d_controllable=d_controllable
+    )
+    dynamics = StructuredDynamics(
+        d_static=d_static, d_dynamic=d_dynamic, d_controllable=d_controllable, action_dim=action_dim
+    )
     encoder.load_state_dict(
         {k[len("encoder.") :]: v for k, v in state_dict.items() if k.startswith("encoder.")}
     )
@@ -53,8 +65,8 @@ def main() -> None:
     encoder_path = os.path.join(args.out_dir, "encoder.onnx")
     dynamics_path = os.path.join(args.out_dir, "dynamics.onnx")
 
-    export_encoder(encoder, encoder_path, input_dim=6, opset=args.opset)
-    export_dynamics(dynamics, dynamics_path, action_dim=8, opset=args.opset)
+    export_encoder(encoder, encoder_path, input_dim=input_dim, opset=args.opset)
+    export_dynamics(dynamics, dynamics_path, action_dim=action_dim, opset=args.opset)
 
     print(f"Exported encoder  -> {encoder_path}")
     print(f"Exported dynamics -> {dynamics_path}")

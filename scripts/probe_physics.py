@@ -70,7 +70,11 @@ def _probe_belief_encoder(
         strict_env=False,
         allow_unsigned=True,
     )
-    gru_input_dim: int = int(meta.get("gru_input_dim", meta.get("obs_dim", "6")))
+    obs_dim: int = int(meta.get("obs_dim", "6"))
+    action_dim_meta: int = int(meta.get("action_dim", "0"))
+    # Derive gru_input_dim from obs_dim + action_dim when not stored explicitly,
+    # so obs+action checkpoints load with the correct input size.
+    gru_input_dim: int = int(meta.get("gru_input_dim", str(obs_dim + action_dim_meta)))
     d_slow: int = int(meta["d_slow"])
     window_k: int = int(meta["window_k"])
 
@@ -99,7 +103,7 @@ def _probe_belief_encoder(
         print("WARNING: no physics labels in dataset — skipping belief probe")
         return
 
-    use_actions = "action_dim" in meta
+    use_actions = action_dim_meta > 0
     all_z, all_physics = [], []
     with torch.no_grad():
         for i in range(len(ds)):
