@@ -4,6 +4,36 @@ All notable changes to Atlas.WM are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.0] — 2026-06-24
+
+### Added
+
+- **PhysicsBeliefEncoder** (Block 14): GRU-based encoder over K consecutive
+  same-episode observations → `z_static_slow`. Follows the RMA/VariBAD pattern:
+  accumulates temporal evidence to identify episode-level physical constants
+  (gravity, friction) that are invisible from a single position-only snapshot.
+- **PhysicsHead**: supervised auxiliary linear head `z_static_slow → physics_hat`
+  for training the belief encoder with ground-truth physics labels.
+- **EpisodeATLASDataset**: windowed dataset returning K-step same-episode windows
+  using a vectorized cumsum boundary-detection algorithm; requires
+  `episode_ids.npy` produced by `generate_data.py --randomize-physics`.
+- **`scripts/train_physics_belief.py`**: training script for the GRU belief
+  encoder; saves checkpoint as `.safetensors` (AD-4) with full metadata.
+- **`scripts/probe_physics.py`** extended: `--belief-checkpoint` flag runs the
+  PhysicsBeliefEncoder probe alongside the single-step baseline.
+
+### Fixed
+
+- `export_onnx.py`: infer `input_dim`, `d_static`, `d_dynamic`, `d_controllable`,
+  and `action_dim` from state dict weight shapes — no longer hardcoded; prevents
+  shape mismatch on non-default checkpoints.
+- `probe_physics.py`: `gru_input_dim` fallback now computes `obs_dim + action_dim`
+  when the key is absent from checkpoint metadata (previously defaulted to
+  `obs_dim` only, causing GRU shape errors for obs+action checkpoints).
+- mypy `no-any-return` errors in `physics_belief.py` and `episode_dataset.py`.
+
+---
+
 ## [3.0.0] — 2026-06-17
 
 The v3.0 line rebuilds Atlas.WM as an installable, reproducible, security-hardened
@@ -73,5 +103,6 @@ locked architectural decisions (AD-1 … AD-8). Delivered as 13 sequential block
 Continuous-physics world model with structured latents on `CruelGridworld`.
 See `docs/v2.0-COMPLETION-REPORT.md` and `docs/v2.0-TECHNICAL-POSTMORTEM.md`.
 
+[3.1.0]: https://github.com/cesaremcasa/Atlas.WM/releases/tag/v3.1.0
 [3.0.0]: https://github.com/cesaremcasa/Atlas.WM/releases/tag/v3.0.0
 [2.0.0]: https://github.com/cesaremcasa/Atlas.WM/releases/tag/v2.0.0
