@@ -117,9 +117,11 @@ def train(args: argparse.Namespace) -> None:
     )
 
     lr: float = tcfg["learning_rate"]
+    weight_decay: float = tcfg.get("weight_decay", 1e-4)
+    critic_lr_factor: float = tcfg.get("critic_lr_factor", 1.0)
     params = list(encoder.parameters()) + list(dynamics.parameters()) + list(decoder.parameters())
-    optimizer = optim.Adam(params, lr=lr)
-    critic_optimizer = optim.Adam(critic.parameters(), lr=lr * 3)
+    optimizer = optim.Adam(params, lr=lr, weight_decay=weight_decay)
+    critic_optimizer = optim.Adam(critic.parameters(), lr=lr * critic_lr_factor)
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(
         optimizer,
         patience=tcfg["lr_scheduler_patience"],
@@ -133,6 +135,7 @@ def train(args: argparse.Namespace) -> None:
     grad_clip: float = tcfg["grad_clip_norm"]
     patience: int = tcfg["early_stopping_patience"]
     num_epochs: int = tcfg["num_epochs"]
+    adv_warmup: int = tcfg.get("adv_warmup_epochs", 0)
 
     max_steps: int | None = args.max_steps if args.max_steps else None
     checkpoint_dir: str = getattr(args, "output_checkpoint", None) or os.path.join(
@@ -174,12 +177,13 @@ def train(args: argparse.Namespace) -> None:
             var_penalty = torch.clamp(1.0 - z_var, min=0)
             drift_penalty = z_t1_pred["delta_slow"].norm(dim=-1).mean()
             adv_loss = encoder_adversarial_loss(critic, z_t["z_static_immutable"], action)
+            effective_lam_adv = lam_adv if epoch >= adv_warmup else 0.0
             loss = (
                 lam_recon * recon_loss
                 + pred_loss
                 + lam_var * var_penalty
                 + lam_drift * drift_penalty
-                + lam_adv * adv_loss
+                + effective_lam_adv * adv_loss
             )
 
             if torch.isnan(loss):

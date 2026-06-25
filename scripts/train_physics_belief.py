@@ -92,7 +92,9 @@ def train_belief_encoder(args: argparse.Namespace) -> None:
     window_k: int = args.window_k or cfg.get("belief_encoder", {}).get("window_k", 10)
     obs_dim: int = mcfg["input_dim"]
     action_dim: int = cfg["environment"]["action_space_size"]
-    gru_input_dim: int = obs_dim + action_dim  # concat(obs, action) at each step
+    # Input: concat(obs, Δobs, action) — velocity proxy gives GRU direct access to
+    # momentum changes caused by gravity/friction, which are invisible from positions alone.
+    gru_input_dim: int = obs_dim * 2 + action_dim  # obs(6) + vel(6) + action(8) = 20
     d_slow: int = mcfg["d_static_slow"]
     n_physics = len(PHYSICS_KEYS)
 
@@ -148,7 +150,7 @@ def train_belief_encoder(args: argparse.Namespace) -> None:
     best_val_r2 = -float("inf")
     print(
         f"\nTraining PhysicsBeliefEncoder — window_k={window_k}, d_slow={d_slow}, "
-        f"gru_input={gru_input_dim}D (obs+action)"
+        f"gru_input={gru_input_dim}D (obs+vel+action)"
     )
     print(f"Predicting: {PHYSICS_KEYS}")
 
@@ -165,8 +167,10 @@ def train_belief_encoder(args: argparse.Namespace) -> None:
             # Normalize physics targets
             physics_norm = (physics_gt - phys_mean_t) / phys_std_t
 
-            # Concatenate obs and action as GRU input
-            sa_window = torch.cat([obs_window, action_window], dim=-1)  # [B, K, 14]
+            # Velocity proxy: Δobs_t = obs_t - obs_{t-1} (zero-padded at t=0)
+            vel_window = torch.zeros_like(obs_window)
+            vel_window[:, 1:] = obs_window[:, 1:] - obs_window[:, :-1]
+            sa_window = torch.cat([obs_window, vel_window, action_window], dim=-1)  # [B, K, 20]
 
             z_slow = belief_enc(sa_window)
             physics_hat_norm = physics_head(z_slow)
@@ -188,7 +192,9 @@ def train_belief_encoder(args: argparse.Namespace) -> None:
                 obs_window = batch["obs_window"].to(device)
                 action_window = batch["action_window"].to(device)
                 physics_gt = batch["physics"].to(device)
-                sa_window = torch.cat([obs_window, action_window], dim=-1)
+                vel_window = torch.zeros_like(obs_window)
+                vel_window[:, 1:] = obs_window[:, 1:] - obs_window[:, :-1]
+                sa_window = torch.cat([obs_window, vel_window, action_window], dim=-1)
                 z_slow = belief_enc(sa_window)
                 # Unnormalize for R² computation
                 physics_hat = physics_head(z_slow) * phys_std_t + phys_mean_t
@@ -231,6 +237,7 @@ def train_belief_encoder(args: argparse.Namespace) -> None:
             meta["action_dim"] = str(action_dim)
             meta["d_slow"] = str(d_slow)
             meta["window_k"] = str(window_k)
+            meta["use_velocity"] = "true"
             meta["physics_keys"] = json.dumps(PHYSICS_KEYS)
             meta["physics_mean"] = json.dumps(physics_mean.tolist())
             meta["physics_std"] = json.dumps(physics_std.tolist())
