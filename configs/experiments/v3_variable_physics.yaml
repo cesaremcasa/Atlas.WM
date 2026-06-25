@@ -38,9 +38,11 @@ training:
   lr_scheduler_factor: 0.5
   lambda_recon: 1.0
   lambda_slow_drift: 0.1
-  lambda_action_invariance: 0.01
+  lambda_action_invariance: 0.001
   lambda_var_penalty: 0.001
   lambda_physics: 0.0          # 0 for world model training; physics encoding is via PhysicsBeliefEncoder
+  adv_warmup_epochs: 5
+  critic_lr_factor: 1.0
 
 belief_encoder:
   window_k: 10                 # GRU window length for PhysicsBeliefEncoder
