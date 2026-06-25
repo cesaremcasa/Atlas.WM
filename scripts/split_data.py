@@ -38,25 +38,49 @@ def split_data(
     episode_ids = np.load(episode_ids_path) if os.path.exists(episode_ids_path) else None
 
     total = len(obs)
-    train_end = int(train_frac * total)
-    val_end = int((train_frac + val_frac) * total)
-
     os.makedirs(processed_dir, exist_ok=True)
 
-    splits = {
-        "train": (slice(None, train_end), train_end),
-        "val": (slice(train_end, val_end), val_end - train_end),
-        "test": (slice(val_end, None), total - val_end),
-    }
+    if episode_ids is not None:
+        # Split by episode (not by transition index) to prevent physics
+        # distribution shift: seed-deterministic RNG assigns different physics
+        # ranges to early vs late episodes, so a sequential 80/10/10 transition
+        # split would give train and val systematically different physics ranges.
+        unique_eps = np.unique(episode_ids)
+        rng = np.random.default_rng(42)
+        rng.shuffle(unique_eps)
+        n_eps = len(unique_eps)
+        train_end_eps = int(train_frac * n_eps)
+        val_end_eps = int((train_frac + val_frac) * n_eps)
+        train_eps = set(unique_eps[:train_end_eps].tolist())
+        val_eps = set(unique_eps[train_end_eps:val_end_eps].tolist())
+        test_eps = set(unique_eps[val_end_eps:].tolist())
+        masks = {
+            "train": np.array([e in train_eps for e in episode_ids]),
+            "val": np.array([e in val_eps for e in episode_ids]),
+            "test": np.array([e in test_eps for e in episode_ids]),
+        }
+        print(f"Episode-based split (shuffled, seed=42): {n_eps} episodes")
+    else:
+        train_end = int(train_frac * total)
+        val_end = int((train_frac + val_frac) * total)
+        masks = {
+            "train": np.zeros(total, dtype=bool),
+            "val": np.zeros(total, dtype=bool),
+            "test": np.zeros(total, dtype=bool),
+        }
+        masks["train"][:train_end] = True
+        masks["val"][train_end:val_end] = True
+        masks["test"][val_end:] = True
 
-    for name, (sl, count) in splits.items():
-        np.save(os.path.join(processed_dir, f"{name}_obs.npy"), obs[sl])
-        np.save(os.path.join(processed_dir, f"{name}_actions.npy"), actions[sl])
-        np.save(os.path.join(processed_dir, f"{name}_next_obs.npy"), next_obs[sl])
+    for name, mask in masks.items():
+        count = int(mask.sum())
+        np.save(os.path.join(processed_dir, f"{name}_obs.npy"), obs[mask])
+        np.save(os.path.join(processed_dir, f"{name}_actions.npy"), actions[mask])
+        np.save(os.path.join(processed_dir, f"{name}_next_obs.npy"), next_obs[mask])
         if physics is not None:
-            np.save(os.path.join(processed_dir, f"{name}_physics.npy"), physics[sl])
+            np.save(os.path.join(processed_dir, f"{name}_physics.npy"), physics[mask])
         if episode_ids is not None:
-            np.save(os.path.join(processed_dir, f"{name}_episode_ids.npy"), episode_ids[sl])
+            np.save(os.path.join(processed_dir, f"{name}_episode_ids.npy"), episode_ids[mask])
         print(f"  {name}: {count} samples")
 
     extras = []
@@ -66,6 +90,13 @@ def split_data(
         extras.append("episode IDs")
     if extras:
         print(f"Additional arrays split: {', '.join(extras)}")
+
+    # Clear the normalization sentinel: freshly split data is unnormalized,
+    # so train.py must re-run normalization on the new split files.
+    normalized_sentinel = os.path.join(processed_dir, ".normalized")
+    if os.path.exists(normalized_sentinel):
+        os.remove(normalized_sentinel)
+        print("Cleared .normalized sentinel — train.py will re-normalize")
 
     open(sentinel, "w").close()
     print(f"Done — processed data in {processed_dir}/")
