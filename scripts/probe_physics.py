@@ -104,17 +104,20 @@ def _probe_belief_encoder(
         return
 
     use_actions = action_dim_meta > 0
+    use_velocity = meta.get("use_velocity", "false") == "true"
     all_z, all_physics = [], []
     with torch.no_grad():
         for i in range(len(ds)):
             item = ds[i]
             obs_w = item["obs_window"].unsqueeze(0)  # [1, K, obs_dim]
+            parts = [obs_w]
+            if use_velocity:
+                vel_w = torch.zeros_like(obs_w)
+                vel_w[:, 1:] = obs_w[:, 1:] - obs_w[:, :-1]
+                parts.append(vel_w)
             if use_actions:
-                act_w = item["action_window"].unsqueeze(0)  # [1, K, action_dim]
-                sa_w = torch.cat([obs_w, act_w], dim=-1)
-                z = belief_enc(sa_w)
-            else:
-                z = belief_enc(obs_w)
+                parts.append(item["action_window"].unsqueeze(0))
+            z = belief_enc(torch.cat(parts, dim=-1))
             all_z.append(z.squeeze(0).numpy())
             all_physics.append(item["physics"].numpy())
 
