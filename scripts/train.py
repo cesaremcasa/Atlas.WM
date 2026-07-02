@@ -13,7 +13,6 @@ import argparse
 import os
 from typing import Any
 
-import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -60,23 +59,6 @@ def load_config(path: str) -> dict[str, Any]:
     return cfg
 
 
-def normalize_data(data_dir: str) -> None:
-    sentinel = os.path.join(data_dir, ".normalized")
-    if os.path.exists(sentinel):
-        print("Data already normalized — skipping")
-        return
-    for split in ["train", "val", "test"]:
-        obs = np.load(f"{data_dir}/{split}_obs.npy")
-        next_obs = np.load(f"{data_dir}/{split}_next_obs.npy")
-        # Grid world coordinates are in [0, 20]; scale to [0, 1].
-        obs = obs / 20.0
-        next_obs = next_obs / 20.0
-        np.save(f"{data_dir}/{split}_obs.npy", obs)
-        np.save(f"{data_dir}/{split}_next_obs.npy", next_obs)
-    open(sentinel, "w").close()
-    print("Data normalized to [0, 1]")
-
-
 def train(args: argparse.Namespace) -> None:
     cfg = load_config(args.config)
     mcfg = cfg["model"]
@@ -84,8 +66,9 @@ def train(args: argparse.Namespace) -> None:
     dcfg = cfg["data"]
     ccfg = cfg["checkpointing"]
 
+    # Observation scaling happens inside ATLASDataset (in memory). The split
+    # files on disk are never modified (v4 B2, roadmap finding C5).
     data_dir: str = dcfg["data_dir"]
-    normalize_data(data_dir)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")

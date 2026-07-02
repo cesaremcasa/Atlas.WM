@@ -10,9 +10,39 @@ Usage::
 from __future__ import annotations
 
 import argparse
+import hashlib
 import os
 
 import numpy as np
+
+_RAW_FILES = (
+    "observations.npy",
+    "actions.npy",
+    "next_observations.npy",
+    "physics_params.npy",
+    "episode_ids.npy",
+)
+
+
+def raw_fingerprint(raw_dir: str) -> str:
+    """SHA-256 over the raw array files (absent files are recorded as absent).
+
+    Stored inside the ``.split`` sentinel so a re-run of generate_data.py
+    (which always overwrites ``data/raw``) triggers an automatic re-split
+    instead of silently training on stale processed data (v4 B2, roadmap
+    finding M4).
+    """
+    h = hashlib.sha256()
+    for name in _RAW_FILES:
+        path = os.path.join(raw_dir, name)
+        h.update(name.encode())
+        if not os.path.exists(path):
+            h.update(b":absent")
+            continue
+        with open(path, "rb") as f:
+            for chunk in iter(lambda: f.read(1 << 20), b""):
+                h.update(chunk)
+    return h.hexdigest()
 
 
 def split_data(
@@ -23,9 +53,14 @@ def split_data(
     force: bool = False,
 ) -> None:
     sentinel = os.path.join(processed_dir, ".split")
+    fingerprint = raw_fingerprint(raw_dir)
     if os.path.exists(sentinel) and not force:
-        print("Data already split — skipping (use --force to re-split)")
-        return
+        with open(sentinel) as f:
+            stored = f.read().strip()
+        if stored == fingerprint:
+            print("Data already split and raw data unchanged — skipping")
+            return
+        print("Raw data changed since last split — re-splitting")
 
     obs = np.load(os.path.join(raw_dir, "observations.npy"))
     actions = np.load(os.path.join(raw_dir, "actions.npy"))
@@ -91,14 +126,16 @@ def split_data(
     if extras:
         print(f"Additional arrays split: {', '.join(extras)}")
 
-    # Clear the normalization sentinel: freshly split data is unnormalized,
-    # so train.py must re-run normalization on the new split files.
+    # Legacy cleanup: pre-v4 train.py normalized the split files in place and
+    # left a .normalized sentinel; the datasets now refuse to load such dirs.
+    # A fresh split is unnormalized, so drop the stale marker.
     normalized_sentinel = os.path.join(processed_dir, ".normalized")
     if os.path.exists(normalized_sentinel):
         os.remove(normalized_sentinel)
-        print("Cleared .normalized sentinel — train.py will re-normalize")
+        print("Removed legacy .normalized sentinel")
 
-    open(sentinel, "w").close()
+    with open(sentinel, "w") as f:
+        f.write(fingerprint + "\n")
     print(f"Done — processed data in {processed_dir}/")
 
 

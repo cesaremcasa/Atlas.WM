@@ -160,7 +160,10 @@ def main() -> None:
     parser.add_argument(
         "--belief-checkpoint",
         default=None,
-        help="Optional PhysicsBeliefEncoder checkpoint (.pt) — produced by train_physics_belief.py",
+        help=(
+            "Optional PhysicsBeliefEncoder checkpoint (.safetensors) — "
+            "produced by train_physics_belief.py"
+        ),
     )
     parser.add_argument("--data-dir", default="data/processed")
     parser.add_argument("--split", default="val")
@@ -168,7 +171,12 @@ def main() -> None:
     parser.add_argument("--train-frac", type=float, default=0.8)
     args = parser.parse_args()
 
-    obs = np.load(f"{args.data_dir}/{args.split}_obs.npy")
+    from atlas_wm.data.dataset import DEFAULT_OBS_SCALE, reject_legacy_normalized
+
+    reject_legacy_normalized(args.data_dir)
+    # Same in-memory scaling the training datasets apply (v4 B2) — the encoder
+    # was trained on [0, 1] observations, so the probe must feed it the same.
+    obs = np.load(f"{args.data_dir}/{args.split}_obs.npy") / DEFAULT_OBS_SCALE
     physics_path = f"{args.data_dir}/{args.split}_physics.npy"
     if not os.path.exists(physics_path):
         print(f"ERROR: physics labels not found at {physics_path}")
