@@ -58,6 +58,29 @@ class TestWallBounce:
         env.step(4)  # neutral right direction, but clamp should dominate
         assert env.agent_pos[0] >= 0.5, "Agent passed through left wall"
 
+    def test_all_objects_stay_in_grid_over_long_rollouts(self):
+        """v4 B1 regression test: boxes must collide with walls too.
+
+        Before the fix, boxes only ever received gravity kicks and drifted
+        out of the grid (down to -62 / up to +77 on a [0, 20] grid), so every
+        observation violated the declared observation space and box physics
+        became unobservable after a few steps.
+
+        Obstacle ejection may legally place a body inside [0, 0.5) — an
+        obstacle at coordinate 2 with r=1.5 ejects to 0.0 — so the contract
+        asserted here is the declared observation space [0, grid_size], not
+        the wall-bounce band [0.5, grid_size - 0.5].
+        """
+        for seed in range(100):
+            env = CruelGridworld(grid_size=GRID, randomize_physics=True)
+            obs, _ = env.reset(seed=seed)
+            rng = np.random.default_rng(seed)
+            for _ in range(100):
+                obs, *_ = env.step(int(rng.integers(8)))
+                assert env.observation_space.contains(obs), (
+                    f"seed={seed}: observation left the grid: {obs}"
+                )
+
 
 class TestFriction:
     def test_friction_reduces_agent_velocity(self):
