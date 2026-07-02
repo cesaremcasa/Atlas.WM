@@ -83,29 +83,33 @@ components with **architectural** (not merely learned) guarantees.
 - Environment content-addressing via `env_hash` (AD-6) flags cross-environment
   loads.
 
-## Physics identifiability (Block 14 — empirical finding)
+## Physics identifiability (Block 14 finding — RETRACTED in v4)
 
-Not all episode-level physics parameters are recoverable from observation
-windows under the current environment and random-exploration data regime:
-
-- **`friction_agent` is not identifiable.** The agent receives a fixed force
-  impulse every step, which re-randomizes its velocity and masks the friction
-  decay. An *oracle* probe — a large MLP given privileged hand-crafted dynamics
-  features (per-step speeds, accelerations, velocity-decay ratios, inter-object
-  distances) — still scores R² < 0 for `friction_agent`. It is therefore
-  excluded from the identification target.
-- **`gravity` and `friction_box` are weakly recoverable.** The oracle ceiling is
-  ≈0.15–0.45 R². Gravity is an intermittent inter-object attraction (`G/dist²`,
-  active only when objects are 1–10 apart); boxes are moved only by that
-  coupling plus friction, so `friction_box` is the most observable parameter.
-- **The GRU belief encoder under-performs the oracle ceiling** (mean R² ≈ 0–0.15
-  on the recoverable subset, with longer ~50-step episodes and `window_k=20`).
-  The raw-sequence → physics mapping is hard to learn from limited windows at
-  this signal-to-noise ratio. A promising future direction is feeding the GRU
-  engineered dynamics features (as the oracle uses) rather than raw positions.
-
-This is a data-regime limitation, not a modeling bug: the belief-encoder
-architecture (RMA/VariBAD-style recurrent distillation) is standard and correct.
+> **Retraction (2026-07-02).** The Block-14 conclusion that `friction_agent`
+> is "not identifiable" is **wrong**, and the numbers below it are invalid.
+> Two defects were found in the v4 red-team review (`docs/v4.0-ROADMAP.md`):
+>
+> 1. **The oracle was broken and unreproducible.** The MLP oracle probe that
+>    scored R² < 0 was never committed to the repo, and MSE-based fits are
+>    destroyed by heavy-tailed wall/obstacle-bounce outliers. A robust
+>    closed-form estimator — median of per-step velocity-decay ratios on
+>    position-only observations (`scripts/oracle_friction_agent.py`) —
+>    recovers `friction_agent` with **R² = 0.85, MAE = 0.004** over 400
+>    random-policy episodes on the corrected environment (R² = 0.98 with a
+>    stricter gravity gate). The agent is the *most* identifiable parameter,
+>    not the least: it is the only object under continuous known excitation.
+> 2. **The environment silently destroyed the box-physics signal.** Boxes did
+>    not collide with walls and drifted out of the grid (observed range
+>    [−62, +77] on a [0, 20] grid), leaving the 1–10-unit gravity interaction
+>    band after a few steps. The reported "oracle ceiling of 0.15–0.45 R²"
+>    for `gravity`/`friction_box` measured this simulation bug (fixed, v4 B1).
+>
+> Consequences: `friction_agent` returns to the identification target set,
+> and the belief-encoder results (R² ≈ 0–0.15) are void — they were further
+> confounded by a 20× data-scale mismatch between the training and probe
+> pipelines (fixed, v4 B2). A full re-baseline on the corrected environment
+> is roadmap block **B5**; this section will be rewritten with those numbers.
+> Until then, no v3.x identifiability claim stands.
 
 ## Limitations & ethical considerations
 

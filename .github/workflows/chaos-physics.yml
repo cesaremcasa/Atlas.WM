@@ -17,4 +17,4 @@ jobs:
       - name: Install package
         run: pip install -e .
       - name: Run chaos tripwire
-        run: python scripts/chaos_physics.py
+        run: python scripts/chaos_physics.py --episodes 200 --steps 150

@@ -16,5 +16,8 @@ jobs:
           python-version: "3.11"
       - name: Install package
         run: pip install -e .
-      - name: Run determinism canary
-        run: pytest tests/integration/test_determinism_canary.py -v
+      - name: Run determinism + training canaries
+        # -k canary matches tests/test_determinism_canary.py and
+        # tests/test_training_canary.py in the flat tests/ dir — the old
+        # tests/integration/ path never existed and failed every scheduled run
+        run: pytest tests/ -k canary -v

@@ -6,6 +6,38 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Retracted (v4 B4)
+
+- **The Block-14 identifiability finding.** `friction_agent` IS identifiable
+  under random-policy data: a robust median-of-ratios oracle
+  (`scripts/oracle_friction_agent.py`, now committed) scores **R² = 0.85,
+  MAE = 0.004** over 400 episodes on the corrected environment. The original
+  "R² < 0" oracle was never committed and its MSE objective is destroyed by
+  bounce outliers. The weak gravity/friction_box ceiling (0.15–0.45 R²)
+  measured the box-containment bug fixed in B1. See the retraction notice in
+  `docs/MODEL_CARD.md`; full re-baseline lands with B5.
+
+### Fixed (v4 phase 0)
+
+- **Environment (B1)**: boxes now collide with walls and obstacles like the
+  agent; previously they exited the grid (range [−62, +77] on [0, 20]),
+  violating the observation space and erasing the gravity signal after a few
+  steps. 100-seed containment regression test added.
+- **Data pipeline (B2)**: observation normalization moved in memory into the
+  datasets (split files on disk are never modified; legacy in-place-normalized
+  dirs are rejected); the `.split` sentinel stores a SHA-256 of the raw arrays
+  so regenerated data triggers an automatic re-split; episode-windowing
+  off-by-one fixed (`cumsum[i-k]` → `cumsum[i-k+1]`).
+- **Reproducibility (B3)**: both trainers seed python/numpy/torch and their
+  DataLoaders (`--seed` / `training.seed`); a real training canary asserts
+  bit-identical loss traces; `d_static_immutable`/`d_static_slow` are actually
+  plumbed into the models and inferred at ONNX export (previously the split
+  silently stayed at `d_static // 2`); critic weights are checkpointed.
+- **CI (B4)**: `ci.yml` re-enabled; `chaos-physics.yml` now runs a real,
+  committed `scripts/chaos_physics.py` (containment, finiteness, determinism,
+  dissipation over randomized episodes); `train-canary.yml` points at tests
+  that exist; `make security` no longer flags the migration script.
+
 ### Fixed
 
 - **Main-encoder divergence (root cause)**: added a latent-magnitude penalty
