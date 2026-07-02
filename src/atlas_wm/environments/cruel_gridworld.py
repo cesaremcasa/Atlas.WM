@@ -120,6 +120,29 @@ class CruelGridworld(gym.Env):
             v1 += force
             v2 -= force  # Newton's 3rd law
 
+    def _collide(self, pos, vel):
+        """Wall bounce + obstacle reflection for one body (mutates in place).
+
+        v4 B1: applied to every object. Previously only the agent collided, so
+        boxes drifted out of the grid (observed range [-62, +77] on a [0, 20]
+        grid), violating the observation space and silencing the gravity
+        interaction that the identifiability study depends on.
+        """
+        for i in range(2):
+            if pos[i] < 0.5:
+                pos[i] = 0.5
+                vel[i] *= -0.8
+            elif pos[i] > self.grid_size - 0.5:
+                pos[i] = self.grid_size - 0.5
+                vel[i] *= -0.8
+        for w in self.walls:
+            dist_vec = pos - np.array([w["x"], w["y"]])
+            dist = np.linalg.norm(dist_vec)
+            if dist < (0.5 + w["r"]):
+                n = dist_vec / dist
+                vel -= 2 * np.dot(vel, n) * n
+                pos[:] = np.array([w["x"], w["y"]]) + n * (0.5 + w["r"])
+
     def _apply_process_noise(self):
         """Inject zero-mean Gaussian noise into velocities (Block 12).
 
@@ -168,22 +191,9 @@ class CruelGridworld(gym.Env):
         self.box_positions[0] += self.box_vels[0] * self.dt
         self.box_positions[1] += self.box_vels[1] * self.dt
 
-        # 5. Wall Bounce
-        for i in range(2):
-            if self.agent_pos[i] < 0.5:
-                self.agent_pos[i] = 0.5
-                self.agent_vel[i] *= -0.8
-            elif self.agent_pos[i] > self.grid_size - 0.5:
-                self.agent_pos[i] = self.grid_size - 0.5
-                self.agent_vel[i] *= -0.8
-
-        # 6. Obstacle Collision (Simple Bounce)
-        for w in self.walls:
-            dist_vec = self.agent_pos - np.array([w["x"], w["y"]])
-            dist = np.linalg.norm(dist_vec)
-            if dist < (0.5 + w["r"]):
-                n = dist_vec / dist
-                self.agent_vel = self.agent_vel - 2 * np.dot(self.agent_vel, n) * n
-                self.agent_pos = np.array([w["x"], w["y"]]) + n * (0.5 + w["r"])
+        # 5 + 6. Wall bounce and obstacle collision — all objects (v4 B1)
+        self._collide(self.agent_pos, self.agent_vel)
+        self._collide(self.box_positions[0], self.box_vels[0])
+        self._collide(self.box_positions[1], self.box_vels[1])
 
         return self._get_obs(), 0.0, False, False, self._physics_info()
