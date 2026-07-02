@@ -121,6 +121,44 @@ def encode_latent(
     return np.concatenate(chunks, axis=0)
 
 
+def _split_indices(
+    n: int,
+    train_frac: float,
+    episode_ids: np.ndarray | None = None,
+    seed: int = 0,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Train/test index split for probe fitting.
+
+    Without ``episode_ids`` the split is sequential (legacy behavior). With
+    them, whole episodes are assigned to one side (shuffled, seeded): probe
+    rows from the same episode share a physics label — and belief windows
+    overlap by K−1 steps — so a row-level split leaks the label across the
+    boundary and inflates R² (v4 B5, roadmap finding M3).
+    """
+    if episode_ids is None:
+        split = int(train_frac * n)
+        if split < 1 or split >= n:
+            raise ValueError(f"train_frac={train_frac} yields an empty split for N={n}")
+        idx = np.arange(n)
+        return idx[:split], idx[split:]
+
+    episode_ids = np.asarray(episode_ids)
+    if len(episode_ids) != n:
+        raise ValueError(f"episode_ids length {len(episode_ids)} != N={n}")
+    unique_eps = np.unique(episode_ids)
+    rng = np.random.default_rng(seed)
+    rng.shuffle(unique_eps)
+    n_train_eps = int(train_frac * len(unique_eps))
+    if n_train_eps < 1 or n_train_eps >= len(unique_eps):
+        raise ValueError(
+            f"train_frac={train_frac} yields an empty episode split for {len(unique_eps)} episodes"
+        )
+    train_eps = set(unique_eps[:n_train_eps].tolist())
+    mask = np.array([e in train_eps for e in episode_ids])
+    idx = np.arange(n)
+    return idx[mask], idx[~mask]
+
+
 def probe_latent(
     encoder: nn.Module,
     obs: np.ndarray,
@@ -130,6 +168,7 @@ def probe_latent(
     alpha: float = 1.0,
     train_frac: float = 0.8,
     device: torch.device | str = "cpu",
+    episode_ids: np.ndarray | None = None,
 ) -> ProbeResult:
     """Fit a linear probe from a latent sub-space to ground-truth targets.
 
@@ -159,13 +198,9 @@ def probe_latent(
 
     feats = encode_latent(encoder, obs, latent_key=latent_key, device=device).astype(np.float64)
 
-    n = len(feats)
-    split = int(train_frac * n)
-    if split < 1 or split >= n:
-        raise ValueError(f"train_frac={train_frac} yields an empty split for N={n}")
-
-    x_tr, x_te = feats[:split], feats[split:]
-    y_tr, y_te = targets[:split], targets[split:]
+    tr_idx, te_idx = _split_indices(len(feats), train_frac, episode_ids)
+    x_tr, x_te = feats[tr_idx], feats[te_idx]
+    y_tr, y_te = targets[tr_idx], targets[te_idx]
 
     # Standardize features with train-split statistics.
     mu = x_tr.mean(axis=0)
@@ -192,6 +227,7 @@ def probe_from_arrays(
     target_names: list[str] | None = None,
     alpha: float = 1.0,
     train_frac: float = 0.8,
+    episode_ids: np.ndarray | None = None,
 ) -> ProbeResult:
     """Fit a linear probe directly from pre-computed feature arrays.
 
@@ -216,13 +252,9 @@ def probe_from_arrays(
     if target_names is None:
         target_names = [f"target_{i}" for i in range(targets.shape[1])]
 
-    n = len(feats)
-    split = int(train_frac * n)
-    if split < 1 or split >= n:
-        raise ValueError(f"train_frac={train_frac} yields an empty split for N={n}")
-
-    x_tr, x_te = feats[:split], feats[split:]
-    y_tr, y_te = targets[:split], targets[split:]
+    tr_idx, te_idx = _split_indices(len(feats), train_frac, episode_ids)
+    x_tr, x_te = feats[tr_idx], feats[te_idx]
+    y_tr, y_te = targets[tr_idx], targets[te_idx]
 
     mu = x_tr.mean(axis=0)
     sigma = x_tr.std(axis=0) + 1e-8

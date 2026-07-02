@@ -17,6 +17,19 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   measured the box-containment bug fixed in B1. See the retraction notice in
   `docs/MODEL_CARD.md`; full re-baseline lands with B5.
 
+### Changed (v4 B5 — re-baseline)
+
+- **New identifiability baseline** on the corrected environment with
+  episode-grouped probe splits (see the re-baseline section in
+  `docs/MODEL_CARD.md`): the closed-form oracle recovers `friction_agent`
+  with **R² = 0.877** from the same noisy dataset where the raw-sequence GRU
+  belief encoder scores **negative R² on all three parameters** — the
+  bottleneck is the training recipe, not the data. `friction_agent` is back
+  in the target set everywhere (`PHYSICS_KEYS`, probe defaults, configs).
+- Probe splits are now grouped by episode (`latent_probe._split_indices`):
+  sequential row splits leaked physics labels across overlapping windows and
+  inflated v3.x probe R².
+
 ### Fixed (v4 phase 0)
 
 - **Environment (B1)**: boxes now collide with walls and obstacles like the

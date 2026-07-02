@@ -107,9 +107,46 @@ components with **architectural** (not merely learned) guarantees.
 > Consequences: `friction_agent` returns to the identification target set,
 > and the belief-encoder results (R² ≈ 0–0.15) are void — they were further
 > confounded by a 20× data-scale mismatch between the training and probe
-> pipelines (fixed, v4 B2). A full re-baseline on the corrected environment
-> is roadmap block **B5**; this section will be rewritten with those numbers.
-> Until then, no v3.x identifiability claim stands.
+> pipelines (fixed, v4 B2). No v3.x identifiability claim stands. The v4
+> re-baseline below replaces them.
+
+## Physics identifiability — v4.0 re-baseline (B5)
+
+Measured on the corrected environment (boxes contained, B1), consistent data
+pipeline (B2), seeded training (B3), and **episode-grouped probe splits** (the
+v3.x sequential splits leaked physics labels across overlapping windows).
+Dataset: 50k random-policy transitions, ~1,000 episodes of ~50 steps,
+per-episode physics randomization, process noise σ = 0.05.
+
+| Probe | gravity | friction_agent | friction_box |
+|---|---|---|---|
+| Closed-form oracle (median-of-ratios, same data) | — | **+0.877** | — |
+| Single-step encoder, `z_static_slow` | −0.03 | −0.28 | −0.08 |
+| Single-step encoder, `z_static_immutable` | +0.01 | −0.34 | −0.14 |
+| GRU belief encoder (window 20, obs+Δobs+action) | −0.05 | −0.24 | −0.25 |
+
+Two conclusions, both different from the retracted v3.x narrative:
+
+1. **Identifiability is not data-limited.** The closed-form estimator
+   recovers `friction_agent` with R² = 0.877 (MAE 0.003) from the *same*
+   noisy dataset — the information is present and extractable. The v3.x
+   framing ("a data-regime limitation, not a modeling bug") had it backwards.
+2. **The raw-sequence GRU recipe is the bottleneck.** Its training loss
+   decreases while cross-episode validation R² stays negative for all three
+   parameters: it memorizes training episodes instead of learning the
+   dynamics → physics mapping. The gap between +0.877 (engineered per-step
+   decay features + robust aggregation) and −0.24 (raw windows) is the
+   project's clearest signal for what to build next: feed the belief encoder
+   the oracle's dynamics features and train with an episode-contrastive
+   objective (roadmap **B10**), then compare active-exploration data
+   collection against random policies (**B11**).
+
+Single-step probes hover at ≈ 0 as expected (physics is invisible in one
+frame); mildly negative values reflect ridge variance at ~63 held-out
+episodes. Reproduce with `scripts/run_pipeline.sh` equivalents:
+`generate_data.py --randomize-physics --episode-reset-prob 0.02 --seed 42`,
+`split_data.py`, both trainers, then `probe_physics.py` and
+`oracle_friction_agent.py`.
 
 ## Limitations & ethical considerations
 
