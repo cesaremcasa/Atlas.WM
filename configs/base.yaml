@@ -42,6 +42,7 @@ training:
   lambda_slow_drift: 0.1
   lambda_action_invariance: 0.001  # reduced; 0.01 caused adversarial instability
   lambda_var_penalty: 0.001
+  lambda_latent_l2: 0.01        # anchors ‖z_full‖; stops self-predictive representation explosion
   lambda_physics: 0.0          # supervised physics aux loss; 0 = disabled (no labels)
   adv_warmup_epochs: 5          # epochs before adversarial loss is applied
   critic_lr_factor: 1.0         # critic LR = learning_rate * critic_lr_factor
