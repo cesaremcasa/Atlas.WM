@@ -24,6 +24,28 @@ from atlas_wm.models.structured_dynamics import StructuredDynamics
 MODEL_CLASS = "ContinuousEncoder+StructuredDynamics"
 
 
+def infer_dims(state_dict: dict) -> dict[str, int]:
+    """Infer every architecture dimension from state-dict weight shapes.
+
+    ``d_immutable`` is recovered via ``dynamics.static_slow_net.0.weight``
+    (input width = d_slow, so d_immutable = d_static − d_slow). Previously it
+    was not inferred at all: a checkpoint trained with a non-default split
+    exported with the passthrough boundary at ``d_static // 2``, silently
+    placing mutable dims inside the "immutable" slice (v4 B3, finding H6).
+    """
+    d_static = int(state_dict["encoder.static_head.2.weight"].shape[0])
+    d_slow = int(state_dict["dynamics.static_slow_net.0.weight"].shape[1])
+    d_controllable = int(state_dict["encoder.controllable_head.2.weight"].shape[0])
+    return {
+        "input_dim": int(state_dict["encoder.shared.0.weight"].shape[1]),
+        "d_static": d_static,
+        "d_immutable": d_static - d_slow,
+        "d_dynamic": int(state_dict["encoder.dynamic_head.2.weight"].shape[0]),
+        "d_controllable": d_controllable,
+        "action_dim": int(state_dict["dynamics.control_net.0.weight"].shape[1]) - d_controllable,
+    }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Export Atlas.WM checkpoint to ONNX")
     parser.add_argument("--checkpoint", default="checkpoints/best_model.safetensors")
@@ -38,19 +60,21 @@ def main() -> None:
         allow_unsigned=True,
     )
 
-    # Infer architecture dimensions from the state dict so that any checkpoint
-    # (including ones trained with non-default sizes) loads without shape errors.
-    input_dim = state_dict["encoder.shared.0.weight"].shape[1]
-    d_static = state_dict["encoder.static_head.2.weight"].shape[0]
-    d_dynamic = state_dict["encoder.dynamic_head.2.weight"].shape[0]
-    d_controllable = state_dict["encoder.controllable_head.2.weight"].shape[0]
-    action_dim = state_dict["dynamics.control_net.0.weight"].shape[1] - d_controllable
+    dims = infer_dims(state_dict)
 
     encoder = ContinuousEncoder(
-        input_dim=input_dim, d_static=d_static, d_dynamic=d_dynamic, d_controllable=d_controllable
+        input_dim=dims["input_dim"],
+        d_static=dims["d_static"],
+        d_dynamic=dims["d_dynamic"],
+        d_controllable=dims["d_controllable"],
+        d_immutable=dims["d_immutable"],
     )
     dynamics = StructuredDynamics(
-        d_static=d_static, d_dynamic=d_dynamic, d_controllable=d_controllable, action_dim=action_dim
+        d_static=dims["d_static"],
+        d_dynamic=dims["d_dynamic"],
+        d_controllable=dims["d_controllable"],
+        action_dim=dims["action_dim"],
+        d_immutable=dims["d_immutable"],
     )
     encoder.load_state_dict(
         {k[len("encoder.") :]: v for k, v in state_dict.items() if k.startswith("encoder.")}
@@ -65,8 +89,8 @@ def main() -> None:
     encoder_path = os.path.join(args.out_dir, "encoder.onnx")
     dynamics_path = os.path.join(args.out_dir, "dynamics.onnx")
 
-    export_encoder(encoder, encoder_path, input_dim=input_dim, opset=args.opset)
-    export_dynamics(dynamics, dynamics_path, action_dim=action_dim, opset=args.opset)
+    export_encoder(encoder, encoder_path, input_dim=dims["input_dim"], opset=args.opset)
+    export_dynamics(dynamics, dynamics_path, action_dim=dims["action_dim"], opset=args.opset)
 
     print(f"Exported encoder  -> {encoder_path}")
     print(f"Exported dynamics -> {dynamics_path}")

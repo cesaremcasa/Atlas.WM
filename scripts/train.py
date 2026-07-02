@@ -29,6 +29,7 @@ from atlas_wm.models.identifiability import (
     encoder_adversarial_loss,
 )
 from atlas_wm.models.structured_dynamics import StructuredDynamics
+from atlas_wm.utils.seeding import seed_worker, set_seed
 
 _BASE_CONFIG = os.path.join(os.path.dirname(__file__), "..", "configs", "base.yaml")
 
@@ -59,12 +60,17 @@ def load_config(path: str) -> dict[str, Any]:
     return cfg
 
 
-def train(args: argparse.Namespace) -> None:
+def train(args: argparse.Namespace) -> dict[str, Any]:
     cfg = load_config(args.config)
     mcfg = cfg["model"]
     tcfg = cfg["training"]
     dcfg = cfg["data"]
     ccfg = cfg["checkpointing"]
+
+    # Seed everything BEFORE model construction so init weights, batch order
+    # and the whole run are reproducible (v4 B3, AD-7).
+    seed: int = args.seed if getattr(args, "seed", None) is not None else tcfg.get("seed", 42)
+    data_generator = set_seed(seed)
 
     # Observation scaling happens inside ATLASDataset (in memory). The split
     # files on disk are never modified (v4 B2, roadmap finding C5).
@@ -72,26 +78,41 @@ def train(args: argparse.Namespace) -> None:
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
-    print(f"Config: {args.config}")
+    print(f"Config: {args.config} | Seed: {seed}")
 
     train_dataset = ATLASDataset(data_dir, split="train")
     val_dataset = ATLASDataset(data_dir, split="val")
 
     batch_size: int = tcfg["batch_size"]
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    train_loader = DataLoader(
+        train_dataset,
+        batch_size=batch_size,
+        shuffle=True,
+        generator=data_generator,
+        worker_init_fn=seed_worker,
+    )
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
 
-    d_static: int = mcfg["d_static_immutable"] + mcfg["d_static_slow"]
+    d_immutable: int = mcfg["d_static_immutable"]
+    d_static: int = d_immutable + mcfg["d_static_slow"]
     d_dynamic: int = mcfg["d_dynamic"]
     d_controllable: int = mcfg["d_controllable"]
     input_dim: int = mcfg["input_dim"]
     action_dim: int = cfg["environment"]["action_space_size"]
 
     encoder = ContinuousEncoder(
-        input_dim=input_dim, d_static=d_static, d_dynamic=d_dynamic, d_controllable=d_controllable
+        input_dim=input_dim,
+        d_static=d_static,
+        d_dynamic=d_dynamic,
+        d_controllable=d_controllable,
+        d_immutable=d_immutable,
     ).to(device)
     dynamics = StructuredDynamics(
-        d_static=d_static, d_dynamic=d_dynamic, d_controllable=d_controllable, action_dim=action_dim
+        d_static=d_static,
+        d_dynamic=d_dynamic,
+        d_controllable=d_controllable,
+        action_dim=action_dim,
+        d_immutable=d_immutable,
     ).to(device)
     d_full = d_static + d_dynamic + d_controllable
     decoder = Decoder(d_full=d_full, output_dim=input_dim).to(device)
@@ -131,10 +152,12 @@ def train(args: argparse.Namespace) -> None:
     best_val_loss = float("inf")
     patience_counter = 0
     steps = 0
+    history: dict[str, list[float]] = {"train": [], "val_pred": [], "val_recon": []}
 
     for epoch in range(num_epochs):
         encoder.train()
         dynamics.train()
+        decoder.train()
         critic.train()
         train_loss = 0.0
 
@@ -216,6 +239,9 @@ def train(args: argparse.Namespace) -> None:
         val_pred_loss /= max(len(val_loader), 1)
         val_recon_loss /= max(len(val_loader), 1)
         val_loss = val_pred_loss + lam_recon * val_recon_loss
+        history["train"].append(train_loss)
+        history["val_pred"].append(val_pred_loss)
+        history["val_recon"].append(val_recon_loss)
         scheduler.step(val_loss)
         current_lr = optimizer.param_groups[0]["lr"]
 
@@ -233,16 +259,30 @@ def train(args: argparse.Namespace) -> None:
                     **{f"encoder.{k}": v for k, v in encoder.state_dict().items()},
                     **{f"dynamics.{k}": v for k, v in dynamics.state_dict().items()},
                     **{f"decoder.{k}": v for k, v in decoder.state_dict().items()},
+                    # Critic included so adversarial training can resume (M8).
+                    **{f"critic.{k}": v for k, v in critic.state_dict().items()},
                 }
                 metadata = make_metadata(
                     model_class="ContinuousEncoder+StructuredDynamics",
                     config={
                         "d_static": d_static,
+                        "d_immutable": d_immutable,
                         "d_dynamic": d_dynamic,
                         "d_controllable": d_controllable,
                         "lr": lr,
+                        "seed": seed,
                         "epoch": epoch,
                     },
+                )
+                # Explicit dims + seed so loaders need no shape inference (H6/AD-7).
+                metadata.update(
+                    {
+                        "d_static": str(d_static),
+                        "d_immutable": str(d_immutable),
+                        "d_dynamic": str(d_dynamic),
+                        "d_controllable": str(d_controllable),
+                        "seed": str(seed),
+                    }
                 )
                 save_checkpoint(combined, checkpoint_dir, metadata)
                 print(f"  -> Saved {checkpoint_dir}")
@@ -256,6 +296,7 @@ def train(args: argparse.Namespace) -> None:
             break
 
     print(f"\nTraining complete. Best val loss: {best_val_loss:.6f}")
+    return {"history": history, "best_val_loss": best_val_loss, "seed": seed}
 
 
 def main() -> None:
@@ -268,6 +309,9 @@ def main() -> None:
     parser.add_argument("--max-steps", type=int, default=None, help="Limit total gradient steps")
     parser.add_argument("--no-checkpoint", action="store_true", help="Skip saving checkpoints")
     parser.add_argument("--output-checkpoint", default=None, help="Override checkpoint path")
+    parser.add_argument(
+        "--seed", type=int, default=None, help="Override training.seed from the config"
+    )
     args = parser.parse_args()
     train(args)
 
