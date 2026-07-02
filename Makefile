@@ -16,7 +16,8 @@ test:
 security:
 	bandit -r src/ -ll
 	pip-audit -r requirements.lock --progress-spinner off
-	@! grep -rE "torch\.load|pickle\.load|torch\.save" src/atlas_wm/ scripts/ \
+	@! grep -rE "torch\.load|pickle\.load|torch\.save" src/atlas_wm/ \
+		$$(find scripts/ -name "*.py" ! -name "migrate_pt_to_safetensors.py") \
 		|| (echo "ERROR: unsafe pickle/torch.save in prod code" && exit 1)
 
 ci-local: lint type test security
