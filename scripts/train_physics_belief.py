@@ -53,14 +53,14 @@ _BASE_CONFIG = os.path.join(os.path.dirname(__file__), "..", "configs", "base.ya
 # Column order of physics_params.npy (set by generate_data.py).
 ALL_PHYSICS_KEYS = ["gravity", "friction_agent", "friction_box"]
 
-# Identification targets. friction_agent is EXCLUDED: under the current
-# environment + random-exploration regime it is not identifiable. The agent
-# receives a 0.8 force impulse every step, which re-randomizes its velocity and
-# masks the friction decay entirely — validated with an oracle probe (a large
-# MLP on privileged hand-crafted dynamics features) that still scores R² < 0 for
-# friction_agent, versus R² ≈ 0.15–0.45 for gravity and friction_box. We
-# therefore identify only the recoverable parameters; see docs/MODEL_CARD.md.
-PHYSICS_KEYS = ["gravity", "friction_box"]
+# Identification targets: all three parameters. The Block-14 exclusion of
+# friction_agent was RETRACTED in v4 (see docs/MODEL_CARD.md): a robust
+# median-of-ratios oracle (scripts/oracle_friction_agent.py) recovers it with
+# R² = 0.85 from random-policy position-only observations — it is the MOST
+# identifiable parameter (the only object under continuous known excitation).
+# The original "not identifiable" verdict came from an uncommitted MSE-based
+# oracle destroyed by bounce outliers, on an env whose boxes exited the grid.
+PHYSICS_KEYS = ["gravity", "friction_agent", "friction_box"]
 TARGET_IDX = [ALL_PHYSICS_KEYS.index(k) for k in PHYSICS_KEYS]
 
 

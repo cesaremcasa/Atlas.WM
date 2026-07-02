@@ -52,6 +52,6 @@ probing:
   latent_key: "z_static_slow"
   ridge_alpha: 1.0
   train_frac: 0.8
-  # friction_agent excluded: not identifiable under this env+policy (agent is
-  # force-actuated every step, masking friction). See docs/MODEL_CARD.md.
-  targets: ["gravity", "friction_box"]
+  # v4: full target set — the friction_agent exclusion was retracted
+  # (docs/MODEL_CARD.md, scripts/oracle_friction_agent.py).
+  targets: ["gravity", "friction_agent", "friction_box"]

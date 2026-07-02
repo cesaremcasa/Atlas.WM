@@ -5,9 +5,9 @@ linear probes from each latent sub-space to the ground-truth physics parameters.
 
 AD-2 prediction: ``z_static_slow`` should achieve higher R² than
 ``z_static_immutable`` (variable physics live in the slow residual, while the
-immutable passthrough must not encode episode-varying quantities). Only the
-recoverable subset ``{gravity, friction_box}`` is probed on the belief encoder;
-``friction_agent`` is not identifiable in this regime (see docs/MODEL_CARD.md).
+immutable passthrough must not encode episode-varying quantities). All three
+parameters are probed; the v3.x exclusion of ``friction_agent`` was retracted
+in v4 (see docs/MODEL_CARD.md and scripts/oracle_friction_agent.py).
 
 Also supports probing the PhysicsBeliefEncoder (GRU) via --belief-checkpoint.
 
@@ -39,10 +39,9 @@ from atlas_wm.models.continuous_encoder import ContinuousEncoder
 
 # Full column order of the physics array (set by generate_data.py).
 TARGET_NAMES = ["gravity", "friction_agent", "friction_box"]
-# Recoverable subset used by the belief encoder (friction_agent is not
-# identifiable under the current env + random-exploration regime; see
-# scripts/train_physics_belief.py and docs/MODEL_CARD.md).
-BELIEF_TARGET_KEYS = ["gravity", "friction_box"]
+# Fallback belief targets for checkpoints without physics_keys metadata.
+# v4: the full set — the friction_agent exclusion was retracted (MODEL_CARD).
+BELIEF_TARGET_KEYS = ["gravity", "friction_agent", "friction_box"]
 
 
 def _load_encoder(checkpoint_path: str) -> ContinuousEncoder:
@@ -113,7 +112,7 @@ def _probe_belief_encoder(
 
     use_actions = action_dim_meta > 0
     use_velocity = meta.get("use_velocity", "false") == "true"
-    all_z, all_physics = [], []
+    all_z, all_physics, all_eps = [], [], []
     with torch.no_grad():
         for i in range(len(ds)):
             item = ds[i]
@@ -128,17 +127,19 @@ def _probe_belief_encoder(
             z = belief_enc(torch.cat(parts, dim=-1))
             all_z.append(z.squeeze(0).numpy())
             all_physics.append(item["physics"].numpy())
+            all_eps.append(int(ds.episode_ids[int(ds.valid_indices[i])]))
 
     z_arr = np.stack(all_z)
     physics_arr = np.stack(all_physics)  # [N, 3] full physics (gravity, f_agent, f_box)
+    eps_arr = np.array(all_eps)
 
-    # Select the recoverable target columns the encoder was actually trained on.
+    # Select the target columns the encoder was actually trained on.
     target_keys = json.loads(meta.get("physics_keys", json.dumps(BELIEF_TARGET_KEYS)))
     target_idx = [TARGET_NAMES.index(k) for k in target_keys]
     physics_arr = physics_arr[:, target_idx]
 
     print(f"\n── PhysicsBeliefEncoder probe (window_k={window_k}, {len(ds)} windows) ──")
-    print(f"   targets={target_keys} (friction_agent excluded — not identifiable)")
+    print(f"   targets={target_keys} | episode-grouped split over {len(np.unique(eps_arr))} eps")
     result = probe_from_arrays(
         z_arr,
         physics_arr,
@@ -146,10 +147,11 @@ def _probe_belief_encoder(
         latent_key="z_static_slow (GRU)",
         alpha=ridge_alpha,
         train_frac=train_frac,
+        episode_ids=eps_arr,
     )
     print(result)
     print(
-        "Expectation: positive R² for gravity and friction_box once converged.\n"
+        "Expectation: positive R² once converged.\n"
         "(single-step encoder gives R²≈0 — physics are only observable through dynamics)"
     )
 
@@ -186,6 +188,10 @@ def main() -> None:
     physics = np.load(physics_path)
     encoder = _load_encoder(args.checkpoint)
 
+    # Episode-grouped probe split when episode IDs exist (v4 B5, finding M3).
+    eps_path = f"{args.data_dir}/{args.split}_episode_ids.npy"
+    episode_ids = np.load(eps_path) if os.path.exists(eps_path) else None
+
     print(f"── Single-step encoder probe (baseline, {len(obs)} samples) ──")
     print(f"   split={args.split!r}, checkpoint={args.checkpoint}\n")
     for latent_key in ("z_static_slow", "z_static_immutable", "z_dynamic"):
@@ -197,6 +203,7 @@ def main() -> None:
             target_names=TARGET_NAMES,
             alpha=args.ridge_alpha,
             train_frac=args.train_frac,
+            episode_ids=episode_ids,
         )
         print(result)
         print()

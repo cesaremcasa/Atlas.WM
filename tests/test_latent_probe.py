@@ -123,3 +123,47 @@ class TestProbeLatent:
         result = probe_latent(encoder, obs, targets, latent_key="z_static_slow")
         assert "z_static_slow" in str(result)
         assert "R²" in str(result)
+
+
+class TestEpisodeGroupedSplit:
+    """v4 B5 (finding M3): probe splits must not cut episodes in half."""
+
+    def test_episodes_never_straddle_the_split(self):
+        from atlas_wm.eval.latent_probe import _split_indices
+
+        episode_ids = np.repeat(np.arange(20), 10)  # 20 episodes x 10 rows
+        tr, te = _split_indices(len(episode_ids), 0.8, episode_ids)
+        train_eps = set(episode_ids[tr].tolist())
+        test_eps = set(episode_ids[te].tolist())
+        assert train_eps.isdisjoint(test_eps), "an episode appears on both sides"
+        assert len(tr) + len(te) == len(episode_ids)
+
+    def test_sequential_split_preserved_without_ids(self):
+        from atlas_wm.eval.latent_probe import _split_indices
+
+        tr, te = _split_indices(100, 0.8, None)
+        assert list(tr) == list(range(80))
+        assert list(te) == list(range(80, 100))
+
+    def test_label_leakage_is_actually_removed(self):
+        from atlas_wm.eval.latent_probe import probe_from_arrays
+
+        # Memorization trap: features are pure per-episode noise (no physics
+        # signal), targets are per-episode constants, and rows from different
+        # episodes are INTERLEAVED. A row-level sequential split then places
+        # rows of the same episode on both sides, letting ridge memorize
+        # episode identity (inflated R2). The episode-grouped split must
+        # score ~0 or below on the same data.
+        rng = np.random.default_rng(0)
+        n_eps, rows = 50, 20
+        episode_ids = np.tile(np.arange(n_eps), rows)  # interleaved episodes
+        ep_feature = rng.normal(size=(n_eps, 16))
+        feats = ep_feature[episode_ids] + 0.01 * rng.normal(size=(n_eps * rows, 16))
+        targets = rng.normal(size=(n_eps, 1))[episode_ids]
+
+        leaky = probe_from_arrays(feats, targets, train_frac=0.8)
+        honest = probe_from_arrays(feats, targets, train_frac=0.8, episode_ids=episode_ids)
+        assert leaky.r2_mean > 0.2, (
+            f"sanity: row split should leak episode identity: {leaky.r2_mean}"
+        )
+        assert honest.r2_mean < 0.1, f"episode split still leaks: {honest.r2_mean}"
