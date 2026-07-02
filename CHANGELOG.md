@@ -8,12 +8,20 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
-- **Training stability**: bounded the action-invariance adversarial loss
-  (`encoder_adversarial_loss`). The objective `-mse(pred, action)` was unbounded
-  below, rewarding the encoder for inflating `‖z_static_immutable‖` toward
-  infinity — which diverged the whole model the moment the loss activated after
-  warmup. The fooling reward is now capped at 0.5 (an honest "maximally confused"
-  prediction for unit-normalized actions), removing the runaway incentive.
+- **Main-encoder divergence (root cause)**: added a latent-magnitude penalty
+  `lambda_latent_l2` (default 0.01) on `‖z_full‖`. The self-predictive `pred_loss`
+  (target = the encoder's own detached output over `next_obs`) has a degenerate
+  direction: the encoder can inflate its representation scale without bound while
+  the dynamics tracks it, so after a few stable epochs the loss explodes ~10×/epoch.
+  Reconstruction alone does not anchor it at the full 50k scale. The L2 penalty
+  removes the runaway direction — validated end-to-end on `scripts/train.py`
+  (stable, monotonic convergence). NOTE: an earlier hypothesis blamed the
+  adversarial loss; that was disproven — disabling the adversarial term entirely
+  still diverged identically. The divergence merely *coincided* with the warmup
+  boundary.
+- **Adversarial loss hardening** (defense-in-depth, not the divergence cause):
+  bounded `encoder_adversarial_loss`; its `-mse(pred, action)` objective was
+  unbounded below. The fooling reward is capped at 0.5.
 - **Data pipeline**: `split_data.py` now splits by shuffled episode ID (not
   transition index) to prevent physics distribution shift between train/val/test,
   and clears the `.normalized` sentinel on re-split so `train.py` re-normalizes

@@ -40,6 +40,7 @@ training:
   lambda_slow_drift: 0.1
   lambda_action_invariance: 0.001
   lambda_var_penalty: 0.001
+  lambda_latent_l2: 0.01        # anchors ‖z_full‖; stops self-predictive representation explosion
   lambda_physics: 0.0          # 0 for world model training; physics encoding is via PhysicsBeliefEncoder
   adv_warmup_epochs: 5
   critic_lr_factor: 1.0

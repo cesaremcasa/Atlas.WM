@@ -132,6 +132,7 @@ def train(args: argparse.Namespace) -> None:
     lam_drift: float = tcfg["lambda_slow_drift"]
     lam_adv: float = tcfg["lambda_action_invariance"]
     lam_var: float = tcfg.get("lambda_var_penalty", 0.001)
+    lam_latent_l2: float = tcfg.get("lambda_latent_l2", 0.01)
     grad_clip: float = tcfg["grad_clip_norm"]
     patience: int = tcfg["early_stopping_patience"]
     num_epochs: int = tcfg["num_epochs"]
@@ -176,6 +177,13 @@ def train(args: argparse.Namespace) -> None:
             z_var = z_t1_pred["z_full"].var(dim=0).mean()
             var_penalty = torch.clamp(1.0 - z_var, min=0)
             drift_penalty = z_t1_pred["delta_slow"].norm(dim=-1).mean()
+            # Latent-magnitude penalty. pred_loss is self-predictive (target is the
+            # encoder's own detached output over next_obs), which has a degenerate
+            # solution: the encoder can inflate its representation scale without bound
+            # while dynamics tracks it, blowing up pred_loss ~10x/epoch after a few
+            # stable epochs. This L2 anchor removes that runaway direction; validated
+            # at the full 50k scale where reconstruction alone does not hold it.
+            latent_l2 = z_t["z_full"].pow(2).mean()
             adv_loss = encoder_adversarial_loss(critic, z_t["z_static_immutable"], action)
             effective_lam_adv = lam_adv if epoch >= adv_warmup else 0.0
             loss = (
@@ -183,6 +191,7 @@ def train(args: argparse.Namespace) -> None:
                 + pred_loss
                 + lam_var * var_penalty
                 + lam_drift * drift_penalty
+                + lam_latent_l2 * latent_l2
                 + effective_lam_adv * adv_loss
             )
 
