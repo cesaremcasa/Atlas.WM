@@ -31,6 +31,7 @@ data:
   train_val_test_split: [0.8, 0.1, 0.1]
 
 training:
+  seed: 42                 # seeds model init, batch order, numpy/python RNGs (AD-7)
   batch_size: 256
   learning_rate: 3.0e-4
   num_epochs: 100

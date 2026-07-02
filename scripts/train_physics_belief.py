@@ -46,6 +46,7 @@ from torch.utils.data import DataLoader
 from atlas_wm.checkpointing.io import make_metadata, save_checkpoint
 from atlas_wm.data.episode_dataset import EpisodeATLASDataset
 from atlas_wm.models.physics_belief import PhysicsBeliefEncoder, PhysicsHead
+from atlas_wm.utils.seeding import seed_worker, set_seed
 
 _BASE_CONFIG = os.path.join(os.path.dirname(__file__), "..", "configs", "base.yaml")
 
@@ -99,9 +100,13 @@ def train_belief_encoder(args: argparse.Namespace) -> None:
     dcfg = cfg["data"]
     tcfg = cfg["training"]
 
+    # Seed before model construction so the run is reproducible (v4 B3, AD-7).
+    seed: int = args.seed if getattr(args, "seed", None) is not None else tcfg.get("seed", 42)
+    data_generator = set_seed(seed)
+
     data_dir: str = dcfg["data_dir"]
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"Using device: {device}")
+    print(f"Using device: {device} | Seed: {seed}")
 
     window_k: int = args.window_k or cfg.get("belief_encoder", {}).get("window_k", 10)
     obs_dim: int = mcfg["input_dim"]
@@ -144,7 +149,14 @@ def train_belief_encoder(args: argparse.Namespace) -> None:
     lr: float = args.lr or tcfg["learning_rate"]
     num_epochs: int = args.epochs or 100
 
-    train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True, drop_last=False)
+    train_loader = DataLoader(
+        train_ds,
+        batch_size=batch_size,
+        shuffle=True,
+        drop_last=False,
+        generator=data_generator,
+        worker_init_fn=seed_worker,
+    )
     val_loader = DataLoader(val_ds, batch_size=batch_size, shuffle=False)
 
     belief_enc = PhysicsBeliefEncoder(obs_dim=gru_input_dim, d_slow=d_slow, hidden_dim=128).to(
@@ -276,6 +288,9 @@ def main() -> None:
     parser.add_argument("--epochs", type=int, default=None, help="Training epochs (default: 100)")
     parser.add_argument("--lr", type=float, default=None, help="Learning rate override")
     parser.add_argument("--output", default=None, help="Checkpoint path (.safetensors)")
+    parser.add_argument(
+        "--seed", type=int, default=None, help="Override training.seed from the config"
+    )
     args = parser.parse_args()
     train_belief_encoder(args)
 
