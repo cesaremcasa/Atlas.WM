@@ -127,20 +127,32 @@ class TestEpisodeATLASDatasetBuildValidIndices:
         # Episode 1: indices 0-9, Episode 2: indices 10-19
         episode_ids = np.array([1] * 10 + [2] * 10, dtype=np.int64)
         ds = self._make_dummy_dataset(tmp_path, 20, episode_ids, window_k=3)
-        # Episode 1: i=2..9 valid (8 windows from position 0).
-        # Episode 2: boundary at index 10; algorithm excludes windows where the
-        # boundary falls within (i-k, i], so i=10,11,12 are excluded.
-        # First valid in ep2 is i=13 (window [11,12,13]), giving i=13..19 (7 windows).
-        assert len(ds) == 8 + 7
+        # Episode 1: i=2..9 valid (8 windows).
+        # Episode 2: window [i-2..i] must lie fully inside the episode, so the
+        # first valid index is i=12 (window [10,11,12]), giving i=12..19
+        # (8 windows). The pre-v4 condition compared one row before the window
+        # and wrongly dropped i=12 (roadmap finding H5).
+        assert len(ds) == 8 + 8
 
     def test_window_exactly_episode_length(self, tmp_path):
-        # 5-step episodes, window_k=5.
-        # Episode 1 (indices 0-4): i=4 is valid (window [0..4], no boundary in (−1,4]).
-        # Episode 2 (indices 5-9): boundary at index 5; for i=9, cumsum[9]!=cumsum[4],
-        # so no windows from episode 2 are valid (boundary prevents all k=5 lookbacks).
+        # 5-step episodes, window_k=5: each episode contributes exactly one
+        # window — its full length. Episode 1: i=4 (window [0..4]);
+        # episode 2: i=9 (window [5..9]). The pre-v4 condition yielded zero
+        # windows for every non-first episode of length exactly K (H5).
         episode_ids = np.array([1, 1, 1, 1, 1, 2, 2, 2, 2, 2], dtype=np.int64)
         ds = self._make_dummy_dataset(tmp_path, 10, episode_ids, window_k=5)
-        assert len(ds) == 1  # Only ep1's last index is reachable
+        assert len(ds) == 2
+
+    def test_windows_never_cross_boundaries_exhaustive(self, tmp_path):
+        # Property check over an irregular episode layout: every returned
+        # window is fully same-episode, and every fully-inside index is kept.
+        episode_ids = np.array([1] * 7 + [2] * 4 + [3] * 5 + [4] * 3, dtype=np.int64)
+        k = 4
+        ds = self._make_dummy_dataset(tmp_path, len(episode_ids), episode_ids, window_k=k)
+        valid = set(ds.valid_indices.tolist())
+        for i in range(len(episode_ids)):
+            window_ok = i >= k - 1 and len(set(episode_ids[i - k + 1 : i + 1])) == 1
+            assert (i in valid) == window_ok, f"index {i}: expected valid={window_ok}"
 
     def test_window_larger_than_episode(self, tmp_path):
         # Episodes shorter than window → no valid windows

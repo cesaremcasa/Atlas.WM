@@ -15,6 +15,8 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset
 
+from atlas_wm.data.dataset import DEFAULT_OBS_SCALE, reject_legacy_normalized
+
 
 class EpisodeATLASDataset(Dataset):
     """Windowed dataset: returns K consecutive same-episode observations.
@@ -36,9 +38,12 @@ class EpisodeATLASDataset(Dataset):
         data_dir: str,
         split: str = "train",
         window_k: int = 10,
+        obs_scale: float = DEFAULT_OBS_SCALE,
     ) -> None:
         if split not in ("train", "val", "test"):
             raise ValueError(f"split must be 'train', 'val', or 'test', got {split!r}")
+
+        reject_legacy_normalized(data_dir)
 
         self.window_k = window_k
 
@@ -50,9 +55,16 @@ class EpisodeATLASDataset(Dataset):
                 "then: python scripts/split_data.py"
             )
 
-        self.obs = np.load(os.path.join(data_dir, f"{split}_obs.npy")).astype(np.float32)
+        # Same in-memory scaling as ATLASDataset (v4 B2): the world-model and
+        # belief pipelines must see identical data regardless of run order.
+        self.obs_scale = obs_scale
+        self.obs = np.load(os.path.join(data_dir, f"{split}_obs.npy")).astype(np.float32) / (
+            obs_scale
+        )
         self.actions = np.load(os.path.join(data_dir, f"{split}_actions.npy")).astype(np.float32)
-        self.next_obs = np.load(os.path.join(data_dir, f"{split}_next_obs.npy")).astype(np.float32)
+        self.next_obs = (
+            np.load(os.path.join(data_dir, f"{split}_next_obs.npy")).astype(np.float32) / obs_scale
+        )
         self.episode_ids = np.load(ids_path).astype(np.int64)
 
         physics_path = os.path.join(data_dir, f"{split}_physics.npy")
@@ -76,10 +88,14 @@ class EpisodeATLASDataset(Dataset):
         boundaries[1:] = (ids[1:] != ids[:-1]).astype(np.int32)
         cumsum = np.cumsum(boundaries)
 
-        # Index i is valid iff no boundary exists in (i-k, i] i.e. cumsum[i] == cumsum[i-k]
+        # The window occupies rows [i-k+1, i]. It is same-episode iff no
+        # boundary falls at any position in [i-k+2, i], i.e.
+        # cumsum[i] == cumsum[i-k+1]. (The previous condition compared against
+        # cumsum[i-k] — one row *before* the window — which dropped the first
+        # valid window of every non-first episode and yielded zero windows for
+        # episodes of length exactly K. v4 B2, roadmap finding H5.)
         i_arr = np.arange(k - 1, n)
-        prev = np.where(i_arr >= k, cumsum[i_arr - k], 0)
-        valid_mask = cumsum[i_arr] == prev
+        valid_mask = cumsum[i_arr] == cumsum[i_arr - k + 1]
         result: np.ndarray = i_arr[valid_mask]
         return result
 
