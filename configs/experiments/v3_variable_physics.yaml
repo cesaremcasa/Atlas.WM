@@ -45,10 +45,12 @@ training:
   critic_lr_factor: 1.0
 
 belief_encoder:
-  window_k: 10                 # GRU window length for PhysicsBeliefEncoder
+  window_k: 20                 # GRU window; needs ~50-step episodes (--episode-reset-prob 0.02)
 
 probing:
   latent_key: "z_static_slow"
   ridge_alpha: 1.0
   train_frac: 0.8
-  targets: ["gravity", "friction_agent", "friction_box"]
+  # friction_agent excluded: not identifiable under this env+policy (agent is
+  # force-actuated every step, masking friction). See docs/MODEL_CARD.md.
+  targets: ["gravity", "friction_box"]

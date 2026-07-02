@@ -21,7 +21,7 @@ components with **architectural** (not merely learned) guarantees.
 | `ActionInvarianceCritic` | `z_static_immutable → action` | Adversary enforcing identifiability (AD-3) |
 | `EntityEncoder` | `entities → z` | Permutation-equivariant variant for variable object counts |
 | `PhysicsBeliefEncoder` | `obs_window[B,K,6] → z_static_slow[B,8]` | GRU over K consecutive obs → physics belief (Block 14) |
-| `PhysicsHead` | `z_static_slow[B,8] → physics_hat[B,3]` | Supervised auxiliary head for physics parameter prediction |
+| `PhysicsHead` | `z_static_slow[B,8] → physics_hat[B,n]` | Supervised head; predicts the recoverable physics subset `{gravity, friction_box}` (Block 14) |
 
 ### Latent layout (`z_full`, width 64)
 
@@ -68,8 +68,9 @@ components with **architectural** (not merely learned) guarantees.
   variable physics where intended. (R² is near zero on an untrained encoder, as
   expected; train before interpreting.)
 - **PhysicsBeliefEncoder probe** (Block 14): ridge R² of physics decoded from
-  the GRU's output over a K-step window. Expected R²≥0.70 for gravity and
-  friction after training; single-step MLP gives R²≈0 by design.
+  the GRU's output over a K-step window. Targets the **recoverable subset**
+  `{gravity, friction_box}` only; single-step MLP gives R²≈0 by design.
+  See *Physics identifiability* below for the empirical ceiling.
 - **ONNX parity:** exported graphs match PyTorch within `rtol=1e-4`, and the
   immutable passthrough is preserved in the exported `dynamics.onnx`.
 
@@ -82,12 +83,38 @@ components with **architectural** (not merely learned) guarantees.
 - Environment content-addressing via `env_hash` (AD-6) flags cross-environment
   loads.
 
+## Physics identifiability (Block 14 — empirical finding)
+
+Not all episode-level physics parameters are recoverable from observation
+windows under the current environment and random-exploration data regime:
+
+- **`friction_agent` is not identifiable.** The agent receives a fixed force
+  impulse every step, which re-randomizes its velocity and masks the friction
+  decay. An *oracle* probe — a large MLP given privileged hand-crafted dynamics
+  features (per-step speeds, accelerations, velocity-decay ratios, inter-object
+  distances) — still scores R² < 0 for `friction_agent`. It is therefore
+  excluded from the identification target.
+- **`gravity` and `friction_box` are weakly recoverable.** The oracle ceiling is
+  ≈0.15–0.45 R². Gravity is an intermittent inter-object attraction (`G/dist²`,
+  active only when objects are 1–10 apart); boxes are moved only by that
+  coupling plus friction, so `friction_box` is the most observable parameter.
+- **The GRU belief encoder under-performs the oracle ceiling** (mean R² ≈ 0–0.15
+  on the recoverable subset, with longer ~50-step episodes and `window_k=20`).
+  The raw-sequence → physics mapping is hard to learn from limited windows at
+  this signal-to-noise ratio. A promising future direction is feeding the GRU
+  engineered dynamics features (as the oracle uses) rather than raw positions.
+
+This is a data-regime limitation, not a modeling bug: the belief-encoder
+architecture (RMA/VariBAD-style recurrent distillation) is standard and correct.
+
 ## Limitations & ethical considerations
 
 - Trained and evaluated only on a synthetic toy environment; no transfer claims.
 - Identifiability guarantees on `z_static_immutable` are architectural
   (passthrough) and adversarial (critic); `z_static_slow` identifiability is
   empirical and depends on training quality — verify with the latent probe.
+- Episode-level physics identification is limited by the data regime — see
+  *Physics identifiability* above; only `{gravity, friction_box}` are targeted.
 - No personal or sensitive data is involved.
 
 ## How to export

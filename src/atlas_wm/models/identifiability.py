@@ -57,17 +57,28 @@ def encoder_adversarial_loss(
     critic: ActionInvarianceCritic,
     z_imm: torch.Tensor,
     action: torch.Tensor,
+    max_reward: float = 0.5,
 ) -> torch.Tensor:
     """Adversarial loss for the encoder: wants to fool the critic.
 
     Returns the NEGATIVE of the critic's prediction loss so that minimizing
     this loss makes z_static_immutable less action-predictive.
 
+    The fooling reward is *capped* at ``max_reward``: without it the objective
+    ``-mse(pred, action)`` is unbounded below, so the encoder is rewarded for
+    inflating ‖z_static_immutable‖ toward infinity to drive the critic's error
+    up — which destabilizes the whole model (observed: training diverges the
+    moment this loss activates). Since ``action`` is unit-normalized, an honest
+    "maximally confused" prediction (pointing opposite the target) already
+    reaches mse ≈ 0.5; anything beyond that is norm-inflation exploitation, so
+    we clamp there and remove the runaway incentive.
+
     Args:
         critic: ActionInvarianceCritic module (params are frozen during this step).
         z_imm: z_static_immutable WITHOUT detach (encoder grads flow).
         action: [B, action_dim] raw action tensor.
+        max_reward: Upper bound on the critic error the encoder is rewarded for.
     """
     action_norm = F.normalize(action, dim=-1)
     pred = critic(z_imm)
-    return -F.mse_loss(pred, action_norm)
+    return -torch.clamp(F.mse_loss(pred, action_norm), max=max_reward)

@@ -3,9 +3,11 @@
 Loads a trained ContinuousEncoder, encodes a variable-physics dataset, and fits
 linear probes from each latent sub-space to the ground-truth physics parameters.
 
-AD-2 prediction: ``z_static_slow`` should achieve high R² (variable physics live
-there), while ``z_static_immutable`` should achieve near-zero R² (it is a hard
-passthrough and must not encode episode-varying quantities).
+AD-2 prediction: ``z_static_slow`` should achieve higher R² than
+``z_static_immutable`` (variable physics live in the slow residual, while the
+immutable passthrough must not encode episode-varying quantities). Only the
+recoverable subset ``{gravity, friction_box}`` is probed on the belief encoder;
+``friction_agent`` is not identifiable in this regime (see docs/MODEL_CARD.md).
 
 Also supports probing the PhysicsBeliefEncoder (GRU) via --belief-checkpoint.
 
@@ -25,6 +27,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import json
 import os
 
 import numpy as np
@@ -34,7 +37,12 @@ from atlas_wm.checkpointing.io import load_checkpoint
 from atlas_wm.eval.latent_probe import probe_latent
 from atlas_wm.models.continuous_encoder import ContinuousEncoder
 
+# Full column order of the physics array (set by generate_data.py).
 TARGET_NAMES = ["gravity", "friction_agent", "friction_box"]
+# Recoverable subset used by the belief encoder (friction_agent is not
+# identifiable under the current env + random-exploration regime; see
+# scripts/train_physics_belief.py and docs/MODEL_CARD.md).
+BELIEF_TARGET_KEYS = ["gravity", "friction_box"]
 
 
 def _load_encoder(checkpoint_path: str) -> ContinuousEncoder:
@@ -122,20 +130,26 @@ def _probe_belief_encoder(
             all_physics.append(item["physics"].numpy())
 
     z_arr = np.stack(all_z)
-    physics_arr = np.stack(all_physics)
+    physics_arr = np.stack(all_physics)  # [N, 3] full physics (gravity, f_agent, f_box)
+
+    # Select the recoverable target columns the encoder was actually trained on.
+    target_keys = json.loads(meta.get("physics_keys", json.dumps(BELIEF_TARGET_KEYS)))
+    target_idx = [TARGET_NAMES.index(k) for k in target_keys]
+    physics_arr = physics_arr[:, target_idx]
 
     print(f"\n── PhysicsBeliefEncoder probe (window_k={window_k}, {len(ds)} windows) ──")
+    print(f"   targets={target_keys} (friction_agent excluded — not identifiable)")
     result = probe_from_arrays(
         z_arr,
         physics_arr,
-        target_names=TARGET_NAMES,
+        target_names=target_keys,
         latent_key="z_static_slow (GRU)",
         alpha=ridge_alpha,
         train_frac=train_frac,
     )
     print(result)
     print(
-        "Expectation: R²≥0.70 for gravity and friction when model has converged\n"
+        "Expectation: positive R² for gravity and friction_box once converged.\n"
         "(single-step encoder gives R²≈0 — physics are only observable through dynamics)"
     )
 
