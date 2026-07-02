@@ -8,11 +8,14 @@ parameters (gravity, friction_agent, friction_box) via a supervised auxiliary lo
 
 Architecture: RMA / VariBAD pattern (multi-step recurrent + supervised distillation).
 Key design choices:
-  - GRU input: concat(obs_t, action_t) at each step (6D + 8D = 14D per step)
+  - GRU input: concat(obs_t, Δobs_t, action_t) at each step (6D + 6D + 8D = 20D).
     Physics can only be identified from DYNAMICS (how obs changes given action),
-    not from observations alone.
+    not from observations alone; the Δobs velocity proxy exposes momentum changes.
+  - Targets the RECOVERABLE physics subset {gravity, friction_box}. friction_agent
+    is excluded — it is not identifiable under this env+policy (the agent is
+    force-actuated every step, masking friction decay). See docs/MODEL_CARD.md.
   - Physics targets are standardized (zero mean, unit variance per parameter)
-    to equalize gradient contributions across gravity (2-8) and friction (0.90-0.99).
+    to equalize gradient contributions across gravity (2-8) and friction (0.95-0.995).
 
 Usage::
 
@@ -46,7 +49,18 @@ from atlas_wm.models.physics_belief import PhysicsBeliefEncoder, PhysicsHead
 
 _BASE_CONFIG = os.path.join(os.path.dirname(__file__), "..", "configs", "base.yaml")
 
-PHYSICS_KEYS = ["gravity", "friction_agent", "friction_box"]
+# Column order of physics_params.npy (set by generate_data.py).
+ALL_PHYSICS_KEYS = ["gravity", "friction_agent", "friction_box"]
+
+# Identification targets. friction_agent is EXCLUDED: under the current
+# environment + random-exploration regime it is not identifiable. The agent
+# receives a 0.8 force impulse every step, which re-randomizes its velocity and
+# masks the friction decay entirely — validated with an oracle probe (a large
+# MLP on privileged hand-crafted dynamics features) that still scores R² < 0 for
+# friction_agent, versus R² ≈ 0.15–0.45 for gravity and friction_box. We
+# therefore identify only the recoverable parameters; see docs/MODEL_CARD.md.
+PHYSICS_KEYS = ["gravity", "friction_box"]
+TARGET_IDX = [ALL_PHYSICS_KEYS.index(k) for k in PHYSICS_KEYS]
 
 
 def _deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
@@ -115,14 +129,16 @@ def train_belief_encoder(args: argparse.Namespace) -> None:
         print("Re-generate with: python scripts/generate_data.py --randomize-physics --seed 42")
         return
 
-    # Compute physics normalization statistics from training data (standardize to μ=0, σ=1)
-    physics_train = train_ds.physics[train_ds.valid_indices]  # [N_valid, 3]
+    # Compute physics normalization statistics from training data (standardize to μ=0, σ=1).
+    # Select only the recoverable target columns (TARGET_IDX) from the full 3-column array.
+    physics_train = train_ds.physics[train_ds.valid_indices][:, TARGET_IDX]  # [N_valid, n_targets]
     physics_mean = physics_train.mean(axis=0)
     physics_std = physics_train.std(axis=0) + 1e-8
     print(f"Physics mean: {physics_mean}, std: {physics_std}")
 
     phys_mean_t = torch.tensor(physics_mean, dtype=torch.float32, device=device)
     phys_std_t = torch.tensor(physics_std, dtype=torch.float32, device=device)
+    target_idx_t = torch.tensor(TARGET_IDX, dtype=torch.long, device=device)
 
     batch_size: int = tcfg.get("batch_size", 256)
     lr: float = args.lr or tcfg["learning_rate"]
@@ -162,7 +178,7 @@ def train_belief_encoder(args: argparse.Namespace) -> None:
         for batch in train_loader:
             obs_window = batch["obs_window"].to(device)  # [B, K, obs_dim]
             action_window = batch["action_window"].to(device)  # [B, K, action_dim]
-            physics_gt = batch["physics"].to(device)  # [B, 3]
+            physics_gt = batch["physics"].to(device)[:, target_idx_t]  # [B, n_targets]
 
             # Normalize physics targets
             physics_norm = (physics_gt - phys_mean_t) / phys_std_t
@@ -191,7 +207,7 @@ def train_belief_encoder(args: argparse.Namespace) -> None:
             for batch in val_loader:
                 obs_window = batch["obs_window"].to(device)
                 action_window = batch["action_window"].to(device)
-                physics_gt = batch["physics"].to(device)
+                physics_gt = batch["physics"].to(device)[:, target_idx_t]
                 vel_window = torch.zeros_like(obs_window)
                 vel_window[:, 1:] = obs_window[:, 1:] - obs_window[:, :-1]
                 sa_window = torch.cat([obs_window, vel_window, action_window], dim=-1)
@@ -210,10 +226,10 @@ def train_belief_encoder(args: argparse.Namespace) -> None:
         scheduler.step(-r2_mean)
         lr_now = optimizer.param_groups[0]["lr"]
 
+        r2_str = " ".join(f"{k}={r2_per[j]:.3f}" for j, k in enumerate(PHYSICS_KEYS))
         print(
             f"Epoch {epoch + 1:3d} | train_loss: {train_loss:.6f} | "
-            f"val R² grav={r2_per[0]:.3f} f_agent={r2_per[1]:.3f} f_box={r2_per[2]:.3f} "
-            f"mean={r2_mean:.3f} | LR: {lr_now:.2e}"
+            f"val R² {r2_str} mean={r2_mean:.3f} | LR: {lr_now:.2e}"
         )
 
         if r2_mean > best_val_r2:

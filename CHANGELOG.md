@@ -4,6 +4,31 @@ All notable changes to Atlas.WM are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **Training stability**: bounded the action-invariance adversarial loss
+  (`encoder_adversarial_loss`). The objective `-mse(pred, action)` was unbounded
+  below, rewarding the encoder for inflating `‖z_static_immutable‖` toward
+  infinity — which diverged the whole model the moment the loss activated after
+  warmup. The fooling reward is now capped at 0.5 (an honest "maximally confused"
+  prediction for unit-normalized actions), removing the runaway incentive.
+- **Data pipeline**: `split_data.py` now splits by shuffled episode ID (not
+  transition index) to prevent physics distribution shift between train/val/test,
+  and clears the `.normalized` sentinel on re-split so `train.py` re-normalizes
+  freshly split data.
+
+### Changed
+
+- **Physics identification scope** (Block 14): the PhysicsBeliefEncoder and probe
+  now target the recoverable subset `{gravity, friction_box}` only. `friction_agent`
+  is excluded — validated as not identifiable under the current env + random-policy
+  regime (oracle probe on privileged features scores R² < 0). The belief pipeline
+  now generates ~50-step episodes (`--episode-reset-prob 0.02`) with `window_k=20`
+  to give the GRU enough evidence. See the new *Physics identifiability* section in
+  `docs/MODEL_CARD.md` for the empirical ceiling and rationale.
+
 ## [3.1.0] — 2026-06-24
 
 ### Added

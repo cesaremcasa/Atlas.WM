@@ -36,7 +36,20 @@ class TestActionInvarianceCritic:
         action = torch.randn(BATCH, ACTION_DIM)
         c_loss = critic_loss(c, z, action)
         adv_loss = encoder_adversarial_loss(c, z, action)
-        assert torch.allclose(c_loss, -adv_loss)
+        # adv loss is the negated critic loss, capped at the fooling-reward bound.
+        assert torch.allclose(-adv_loss, torch.clamp(c_loss, max=0.5))
+
+    def test_adversarial_loss_bounded_for_large_z(self):
+        """Regression: inflating ‖z‖ must not drive the reward to -inf.
+
+        Without the clamp the encoder is rewarded for exploding z_static_immutable
+        to fool the critic, which diverges the whole model once the loss activates.
+        """
+        c = ActionInvarianceCritic(d_immutable=D_IMM, action_dim=ACTION_DIM)
+        z = torch.randn(BATCH, D_IMM) * 1000.0
+        action = torch.randn(BATCH, ACTION_DIM)
+        adv_loss = encoder_adversarial_loss(c, z, action)
+        assert adv_loss.item() >= -0.5 - 1e-6
 
     def test_critic_trains_to_predict_action(self):
         """Critic loss decreases after several gradient steps."""

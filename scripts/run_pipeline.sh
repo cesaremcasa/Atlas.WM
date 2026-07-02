@@ -28,7 +28,7 @@ FORCE=false
 CONFIG="configs/base.yaml"
 SEED=42
 CHECKPOINT="checkpoints/best_model.safetensors"
-BELIEF_CHECKPOINT="checkpoints/physics_belief.pt"
+BELIEF_CHECKPOINT="checkpoints/physics_belief.safetensors"
 
 # ── argument parsing ──────────────────────────────────────────────────────────
 while [[ $# -gt 0 ]]; do
@@ -55,6 +55,12 @@ step "1/4 — Generate data"
 GEN_ARGS="--seed $SEED"
 if $VARIABLE_PHYSICS; then
   GEN_ARGS="$GEN_ARGS --randomize-physics --process-noise-std 0.05"
+  # Longer episodes (~50 steps) give the PhysicsBeliefEncoder enough consecutive
+  # transitions to integrate the weak physics signal. Short (~10-step) episodes
+  # leave too few valid windows for identification (see docs/MODEL_CARD.md).
+  if $RUN_BELIEF; then
+    GEN_ARGS="$GEN_ARGS --episode-reset-prob 0.02"
+  fi
 fi
 # shellcheck disable=SC2086
 python scripts/generate_data.py $GEN_ARGS
@@ -85,10 +91,18 @@ fi
 # ── step 4: probe (optional) ──────────────────────────────────────────────────
 if $RUN_PROBE; then
   step "4/4 — Latent probe"
+  # When the belief encoder was trained, probe it too (the rescoped
+  # {gravity, friction_box} probe) — not just the single-step baseline.
+  BELIEF_PROBE_ARG=""
+  if $RUN_BELIEF && [[ -f "$BELIEF_CHECKPOINT" ]]; then
+    BELIEF_PROBE_ARG="--belief-checkpoint $BELIEF_CHECKPOINT"
+  fi
+  # shellcheck disable=SC2086
   python scripts/probe_physics.py \
     --checkpoint "$CHECKPOINT" \
     --data-dir data/processed \
-    --split val
+    --split val \
+    $BELIEF_PROBE_ARG
 else
   step "4/4 — Latent probe (skipped — pass --probe to enable)"
 fi
