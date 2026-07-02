@@ -28,7 +28,7 @@ FORCE=false
 CONFIG="configs/base.yaml"
 SEED=42
 CHECKPOINT="checkpoints/best_model.safetensors"
-BELIEF_CHECKPOINT="checkpoints/physics_belief.pt"
+BELIEF_CHECKPOINT="checkpoints/physics_belief.safetensors"
 
 # ── argument parsing ──────────────────────────────────────────────────────────
 while [[ $# -gt 0 ]]; do
@@ -91,10 +91,18 @@ fi
 # ── step 4: probe (optional) ──────────────────────────────────────────────────
 if $RUN_PROBE; then
   step "4/4 — Latent probe"
+  # When the belief encoder was trained, probe it too (the rescoped
+  # {gravity, friction_box} probe) — not just the single-step baseline.
+  BELIEF_PROBE_ARG=""
+  if $RUN_BELIEF && [[ -f "$BELIEF_CHECKPOINT" ]]; then
+    BELIEF_PROBE_ARG="--belief-checkpoint $BELIEF_CHECKPOINT"
+  fi
+  # shellcheck disable=SC2086
   python scripts/probe_physics.py \
     --checkpoint "$CHECKPOINT" \
     --data-dir data/processed \
-    --split val
+    --split val \
+    $BELIEF_PROBE_ARG
 else
   step "4/4 — Latent probe (skipped — pass --probe to enable)"
 fi
