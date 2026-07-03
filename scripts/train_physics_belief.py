@@ -11,9 +11,8 @@ Key design choices:
   - GRU input: concat(obs_t, Δobs_t, action_t) at each step (6D + 6D + 8D = 20D).
     Physics can only be identified from DYNAMICS (how obs changes given action),
     not from observations alone; the Δobs velocity proxy exposes momentum changes.
-  - Targets the RECOVERABLE physics subset {gravity, friction_box}. friction_agent
-    is excluded — it is not identifiable under this env+policy (the agent is
-    force-actuated every step, masking friction decay). See docs/MODEL_CARD.md.
+  - Targets all three physics parameters. (The v3.x exclusion of friction_agent
+    was retracted in v4 — see docs/MODEL_CARD.md and scripts/oracle_friction_agent.py.)
   - Physics targets are standardized (zero mean, unit variance per parameter)
     to equalize gradient contributions across gravity (2-8) and friction (0.95-0.995).
 
@@ -172,7 +171,7 @@ def train_belief_encoder(args: argparse.Namespace) -> None:
         cfg["checkpointing"]["checkpoint_dir"], "physics_belief.safetensors"
     )
     if not checkpoint_path.endswith(".safetensors"):
-        checkpoint_path = checkpoint_path.rsplit(".", 1)[0] + ".safetensors"
+        checkpoint_path = os.path.splitext(checkpoint_path)[0] + ".safetensors"
     os.makedirs(os.path.dirname(checkpoint_path) or ".", exist_ok=True)
 
     best_val_r2 = -float("inf")

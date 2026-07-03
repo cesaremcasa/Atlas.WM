@@ -4,6 +4,7 @@ import argparse
 
 import torch
 
+from atlas_wm.checkpointing.dims import infer_dims
 from atlas_wm.checkpointing.io import load_checkpoint
 from atlas_wm.models.continuous_encoder import ContinuousEncoder
 from atlas_wm.models.structured_dynamics import StructuredDynamics
@@ -21,12 +22,24 @@ def evaluate(args: argparse.Namespace) -> None:
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    encoder = ContinuousEncoder(input_dim=6, d_static=16, d_dynamic=32, d_controllable=16).to(
-        device
-    )
-    dynamics = StructuredDynamics(d_static=16, d_dynamic=32, d_controllable=16, action_dim=8).to(
-        device
-    )
+    # Dims from metadata when present, weight shapes otherwise — never
+    # hardcoded (H6: a wrong d_immutable mis-slices the latent silently).
+    dims = infer_dims(state_dict)
+    d_immutable = int(metadata.get("d_immutable", dims["d_immutable"]))
+    encoder = ContinuousEncoder(
+        input_dim=dims["input_dim"],
+        d_static=dims["d_static"],
+        d_dynamic=dims["d_dynamic"],
+        d_controllable=dims["d_controllable"],
+        d_immutable=d_immutable,
+    ).to(device)
+    dynamics = StructuredDynamics(
+        d_static=dims["d_static"],
+        d_dynamic=dims["d_dynamic"],
+        d_controllable=dims["d_controllable"],
+        action_dim=dims["action_dim"],
+        d_immutable=d_immutable,
+    ).to(device)
 
     enc_sd = {k[len("encoder.") :]: v for k, v in state_dict.items() if k.startswith("encoder.")}
     dyn_sd = {k[len("dynamics.") :]: v for k, v in state_dict.items() if k.startswith("dynamics.")}

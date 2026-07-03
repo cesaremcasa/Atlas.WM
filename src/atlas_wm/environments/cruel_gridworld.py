@@ -138,6 +138,10 @@ class CruelGridworld(gym.Env):
         for w in self.walls:
             dist_vec = pos - np.array([w["x"], w["y"]])
             dist = np.linalg.norm(dist_vec)
+            if dist < 1e-9:
+                # Body exactly on the obstacle center: the reflection normal
+                # is undefined; skip rather than emit NaNs.
+                continue
             if dist < (0.5 + w["r"]):
                 n = dist_vec / dist
                 vel -= 2 * np.dot(vel, n) * n

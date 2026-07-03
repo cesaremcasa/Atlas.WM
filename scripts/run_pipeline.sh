@@ -72,7 +72,7 @@ python scripts/split_data.py $(force_flag)
 
 # ── step 3: train ─────────────────────────────────────────────────────────────
 step "3/4 — Train"
-python scripts/train.py --config "$CONFIG" --output-checkpoint "$CHECKPOINT"
+python scripts/train.py --config "$CONFIG" --output-checkpoint "$CHECKPOINT" --seed "$SEED"
 
 # ── step 3b: train PhysicsBeliefEncoder (optional, variable-physics only) ─────
 if $RUN_BELIEF; then
@@ -82,7 +82,8 @@ if $RUN_BELIEF; then
     step "3b — Train PhysicsBeliefEncoder (GRU for physics identification)"
     python scripts/train_physics_belief.py \
       --config "$CONFIG" \
-      --output "$BELIEF_CHECKPOINT"
+      --output "$BELIEF_CHECKPOINT" \
+      --seed "$SEED"
   fi
 else
   step "3b — PhysicsBeliefEncoder (skipped — pass --belief to enable)"
@@ -91,8 +92,8 @@ fi
 # ── step 4: probe (optional) ──────────────────────────────────────────────────
 if $RUN_PROBE; then
   step "4/4 — Latent probe"
-  # When the belief encoder was trained, probe it too (the rescoped
-  # {gravity, friction_box} probe) — not just the single-step baseline.
+  # When the belief encoder was trained, probe it too (all three physics
+  # parameters — the v3.x friction_agent exclusion was retracted in v4).
   BELIEF_PROBE_ARG=""
   if $RUN_BELIEF && [[ -f "$BELIEF_CHECKPOINT" ]]; then
     BELIEF_PROBE_ARG="--belief-checkpoint $BELIEF_CHECKPOINT"

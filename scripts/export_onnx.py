@@ -23,27 +23,9 @@ from atlas_wm.models.structured_dynamics import StructuredDynamics
 
 MODEL_CLASS = "ContinuousEncoder+StructuredDynamics"
 
-
-def infer_dims(state_dict: dict) -> dict[str, int]:
-    """Infer every architecture dimension from state-dict weight shapes.
-
-    ``d_immutable`` is recovered via ``dynamics.static_slow_net.0.weight``
-    (input width = d_slow, so d_immutable = d_static − d_slow). Previously it
-    was not inferred at all: a checkpoint trained with a non-default split
-    exported with the passthrough boundary at ``d_static // 2``, silently
-    placing mutable dims inside the "immutable" slice (v4 B3, finding H6).
-    """
-    d_static = int(state_dict["encoder.static_head.2.weight"].shape[0])
-    d_slow = int(state_dict["dynamics.static_slow_net.0.weight"].shape[1])
-    d_controllable = int(state_dict["encoder.controllable_head.2.weight"].shape[0])
-    return {
-        "input_dim": int(state_dict["encoder.shared.0.weight"].shape[1]),
-        "d_static": d_static,
-        "d_immutable": d_static - d_slow,
-        "d_dynamic": int(state_dict["encoder.dynamic_head.2.weight"].shape[0]),
-        "d_controllable": d_controllable,
-        "action_dim": int(state_dict["dynamics.control_net.0.weight"].shape[1]) - d_controllable,
-    }
+# Moved to the package so probe scripts can share it (v4 B6); re-exported
+# here for backward compatibility with existing imports.
+from atlas_wm.checkpointing.dims import infer_dims  # noqa: E402, F401
 
 
 def main() -> None:

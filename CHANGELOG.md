@@ -22,10 +22,11 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **New identifiability baseline** on the corrected environment with
   episode-grouped probe splits (see the re-baseline section in
   `docs/MODEL_CARD.md`): the closed-form oracle recovers `friction_agent`
-  with **R² = 0.877** from the same noisy dataset where the raw-sequence GRU
-  belief encoder scores **negative R² on all three parameters** — the
-  bottleneck is the training recipe, not the data. `friction_agent` is back
-  in the target set everywhere (`PHYSICS_KEYS`, probe defaults, configs).
+  with **R² = 0.865** (MAE 0.006) from the same noisy (σ = 0.05) dataset
+  where the raw-sequence GRU belief encoder scores **negative R² on all
+  three parameters** — the bottleneck is the training recipe, not the data.
+  `friction_agent` is back in the target set everywhere (`PHYSICS_KEYS`,
+  probe defaults, configs).
 - Probe splits are now grouped by episode (`latent_probe._split_indices`):
   sequential row splits leaked physics labels across overlapping windows and
   inflated v3.x probe R².
@@ -68,19 +69,18 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   bounded `encoder_adversarial_loss`; its `-mse(pred, action)` objective was
   unbounded below. The fooling reward is capped at 0.5.
 - **Data pipeline**: `split_data.py` now splits by shuffled episode ID (not
-  transition index) to prevent physics distribution shift between train/val/test,
-  and clears the `.normalized` sentinel on re-split so `train.py` re-normalizes
-  freshly split data.
+  transition index) to prevent physics distribution shift between train/val/test.
+  (Its `.normalized`-sentinel handling was later superseded by the B2 in-memory
+  normalization above — the sentinel is now a rejected legacy marker.)
 
 ### Changed
 
-- **Physics identification scope** (Block 14): the PhysicsBeliefEncoder and probe
-  now target the recoverable subset `{gravity, friction_box}` only. `friction_agent`
-  is excluded — validated as not identifiable under the current env + random-policy
-  regime (oracle probe on privileged features scores R² < 0). The belief pipeline
-  now generates ~50-step episodes (`--episode-reset-prob 0.02`) with `window_k=20`
-  to give the GRU enough evidence. See the new *Physics identifiability* section in
-  `docs/MODEL_CARD.md` for the empirical ceiling and rationale.
+- ~~**Physics identification scope** (Block 14)~~ **[SUPERSEDED — see
+  *Retracted (v4 B4)* above.]** This entry claimed `friction_agent` is not
+  identifiable and rescoped the targets to `{gravity, friction_box}`; the
+  claim was retracted and the full target set restored in B5. Retained only
+  for the still-valid data recipe: the belief pipeline generates ~50-step
+  episodes (`--episode-reset-prob 0.02`) with `window_k=20`.
 
 ## [3.1.0] — 2026-06-24
 

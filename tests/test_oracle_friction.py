@@ -6,9 +6,6 @@ The full run (400 episodes x 50 steps) scores R² = 0.85; this reduced run
 uses a permissive threshold to stay fast and non-flaky.
 """
 
-import sys
-
-sys.path.insert(0, "scripts")
 from oracle_friction_agent import run_oracle  # noqa: E402
 
 
