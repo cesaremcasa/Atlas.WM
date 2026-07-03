@@ -8,16 +8,12 @@ Covers the three failure modes from the roadmap:
 - H5 lives in tests/test_physics_belief.py (episode windowing).
 """
 
-import sys
-
 import numpy as np
 import pytest
+from split_data import raw_fingerprint, split_data  # noqa: E402
 
 from atlas_wm.data.dataset import ATLASDataset, reject_legacy_normalized
 from atlas_wm.data.episode_dataset import EpisodeATLASDataset
-
-sys.path.insert(0, "scripts")
-from split_data import raw_fingerprint, split_data  # noqa: E402
 
 
 def _write_split(tmp_path, split="train", n=32, low=0.0, high=20.0, seed=0):

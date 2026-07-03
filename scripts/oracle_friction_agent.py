@@ -22,6 +22,9 @@ Method — median of per-step decay ratios, position-only observations:
       - the MEDIAN over the surviving ratios ignores the remaining outliers
         (unobservable obstacle bounces). A least-squares fit does not — that
         is what broke the original oracle.
+    Per-episode estimates are clipped to [0.5, 1.1] before scoring (physical
+    plausibility bound; disclosed here because it mildly protects R² against
+    pathological episodes).
 
 Measured on the post-B1 environment (boxes contained), 400 random-policy
 episodes x 50 steps, physics randomized per episode:
@@ -29,6 +32,10 @@ episodes x 50 steps, physics randomized per episode:
     dist_gate=5.0 (default):  R^2 = 0.85, MAE = 0.004, 94% episode coverage
     dist_gate=8.0 (strict):   R^2 = 0.98, MAE = 0.001, 68% episode coverage
     dist_gate disabled:       R^2 = 0.62, MAE = 0.008, 100% coverage
+
+With process noise sigma = 0.05 (--process-noise-std 0.05, the regime of the
+v4 re-baseline dataset): R^2 = 0.865, MAE = 0.006 on the on-disk 50k dataset
+— the per-episode median averages the noise out.
 
 Usage::
 
@@ -102,6 +109,7 @@ def run_oracle(
     steps: int = 50,
     seed: int = 0,
     dist_gate: float | None = 5.0,
+    process_noise_std: float = 0.0,
 ) -> dict[str, float]:
     """Roll random-policy episodes with randomized physics; report R² and MAE."""
     rng = np.random.default_rng(seed)
@@ -109,7 +117,7 @@ def run_oracle(
     skipped = 0
 
     for _ in range(episodes):
-        env = CruelGridworld(randomize_physics=True)
+        env = CruelGridworld(randomize_physics=True, process_noise_std=process_noise_std)
         obs, info = env.reset(seed=int(rng.integers(2**31)))
         traj = [obs.astype(float)]
         actions = []
@@ -144,6 +152,12 @@ def main() -> None:
     parser.add_argument("--steps", type=int, default=50)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument(
+        "--process-noise-std",
+        type=float,
+        default=0.0,
+        help="Gaussian process noise std for the generated episodes (0.05 = re-baseline regime)",
+    )
+    parser.add_argument(
         "--dist-gate",
         type=float,
         default=5.0,
@@ -152,7 +166,13 @@ def main() -> None:
     args = parser.parse_args()
 
     gate = args.dist_gate if args.dist_gate > 0 else None
-    result = run_oracle(episodes=args.episodes, steps=args.steps, seed=args.seed, dist_gate=gate)
+    result = run_oracle(
+        episodes=args.episodes,
+        steps=args.steps,
+        seed=args.seed,
+        dist_gate=gate,
+        process_noise_std=args.process_noise_std,
+    )
     print(
         f"friction_agent oracle over {int(result['episodes_used'])} episodes "
         f"({int(result['episodes_skipped'])} skipped, insufficient usable steps):\n"

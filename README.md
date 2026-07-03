@@ -3,9 +3,9 @@
 [![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.1+-orange.svg)](https://pytorch.org/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Status](https://img.shields.io/badge/status-v3.0%20in%20progress-blue.svg)](docs/Atlas-WM-v3-Architecture-Plan.md)
+[![Status](https://img.shields.io/badge/status-v4.0%20in%20progress-blue.svg)](docs/v4.0-ROADMAP.md)
 
-**Status:** v2.0 architecture validated | v3.0 feature-complete (Block 13/13, release tag pending)
+**Status:** v4.0 in progress — Phase 0 (correction & retraction) complete. See [`docs/v4.0-ROADMAP.md`](docs/v4.0-ROADMAP.md) for the red-team findings and the 18-block plan; v3.x identifiability claims were retracted ([model card](docs/MODEL_CARD.md)).
 
 See [`CHANGELOG.md`](CHANGELOG.md), the [model card](docs/MODEL_CARD.md), and
 `scripts/export_onnx.py` for the ONNX export (`pip install 'atlas-wm[export]'`).
@@ -38,18 +38,13 @@ Atlas.WM/
 │   ├── models/            # ContinuousEncoder, StructuredDynamics, heads, losses
 │   ├── environments/      # cruel_gridworld.py (single canonical env)
 │   ├── data/              # ATLASDataset
-│   ├── training/          # train, eval, rollout
 │   ├── checkpointing/     # safetensors I/O, signing, env hash
 │   └── utils/
 ├── scripts/               # train.py, generate_data.py, split_data.py
 ├── configs/
 │   ├── base.yaml
 │   └── experiments/       # v2_baseline.yaml, v3_hybrid_static.yaml
-├── tests/
-│   ├── unit/
-│   ├── integration/
-│   ├── physics/
-│   └── security/
+├── tests/                 # flat pytest suite (unit + integration + physics + security)
 ├── docs/                  # architecture plan, ADRs, model card
 ├── archive/               # quarantined v2.0 artifacts (do not import)
 └── checkpoints/           # signed .safetensors only
@@ -88,7 +83,7 @@ python scripts/train.py
 | 3 — Safetensors I/O | Remove `torch.save/load`, safetensors migration | ✅ Complete |
 | 4 — Checkpoint Signing | HMAC-SHA256 manifest | ✅ Complete |
 | 5 — Hybrid Static | `z_static_immutable` + `z_static_slow` | ✅ Complete |
-| 6 — Identifiability | Intervention loss, action-invariance critic | ✅ Complete |
+| 6 — Identifiability | Action-invariance critic (intervention loss was never implemented — v4 finding C3; lands in v4 B9) | ⚠️ Partial |
 | 7 — Encoder Tests | Full unit test coverage for `ContinuousEncoder` | ✅ Complete |
 | 8 — Physics Tests | Environment contract tests + chaos tripwire | ✅ Complete |
 | 9 — Determinism Canary | Seeded training reproducibility | ✅ Complete |

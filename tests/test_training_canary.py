@@ -10,13 +10,10 @@ config must actually reach the models and the exported-checkpoint dims.
 """
 
 import argparse
-import sys
 
 import numpy as np
 import pytest
 import yaml
-
-sys.path.insert(0, "scripts")
 from export_onnx import infer_dims  # noqa: E402
 from train import train  # noqa: E402
 

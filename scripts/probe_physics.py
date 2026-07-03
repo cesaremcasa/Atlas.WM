@@ -33,6 +33,7 @@ import os
 import numpy as np
 import torch
 
+from atlas_wm.checkpointing.dims import infer_dims
 from atlas_wm.checkpointing.io import load_checkpoint
 from atlas_wm.eval.latent_probe import probe_latent
 from atlas_wm.models.continuous_encoder import ContinuousEncoder
@@ -45,7 +46,7 @@ BELIEF_TARGET_KEYS = ["gravity", "friction_agent", "friction_box"]
 
 
 def _load_encoder(checkpoint_path: str) -> ContinuousEncoder:
-    state_dict, _ = load_checkpoint(
+    state_dict, meta = load_checkpoint(
         checkpoint_path,
         expected_model_class="ContinuousEncoder+StructuredDynamics",
         strict_env=False,
@@ -54,7 +55,18 @@ def _load_encoder(checkpoint_path: str) -> ContinuousEncoder:
     encoder_state = {
         k[len("encoder.") :]: v for k, v in state_dict.items() if k.startswith("encoder.")
     }
-    encoder = ContinuousEncoder(input_dim=6, d_static=16, d_dynamic=32, d_controllable=16)
+    # Dims from metadata when present, weight shapes otherwise. Hardcoding
+    # them silently mis-sliced z_static_immutable/z_static_slow for
+    # non-default splits — load_state_dict cannot catch it because
+    # d_immutable only affects slicing, not parameter shapes (H6).
+    dims = infer_dims(state_dict)
+    encoder = ContinuousEncoder(
+        input_dim=dims["input_dim"],
+        d_static=dims["d_static"],
+        d_dynamic=dims["d_dynamic"],
+        d_controllable=dims["d_controllable"],
+        d_immutable=int(meta.get("d_immutable", dims["d_immutable"])),
+    )
     encoder.load_state_dict(encoder_state)
     encoder.eval()
     return encoder

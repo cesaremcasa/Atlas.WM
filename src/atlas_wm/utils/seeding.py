@@ -5,6 +5,10 @@ itself was entirely unseeded (model init, batch order), so no checkpoint was
 reproducible. Both trainers now call :func:`set_seed` before building models
 and pass the returned generator (plus :func:`seed_worker`) to their
 DataLoaders.
+
+Scope: bit-identical reproducibility is guaranteed on CPU (where CI runs the
+canary). CUDA kernels may be nondeterministic; for GPU-exact runs also enable
+``torch.use_deterministic_algorithms(True)`` and cuDNN deterministic mode.
 """
 
 from __future__ import annotations
