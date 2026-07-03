@@ -153,6 +153,31 @@ both trainers, then `probe_physics.py` (probe table) and the
 `oracle_friction_agent.estimate_friction_agent` per-episode sweep over
 `data/raw` (oracle row).
 
+## Frame stacking (v4 B6)
+
+`frame_stack: 2` is now the default model input: the previous same-episode
+frame is concatenated to each observation (12-D input), making velocity
+observable — a single position frame leaves one-step prediction ill-posed
+(finding M2). Measured on the noisy re-baseline dataset (val split,
+observation-space next-frame MSE, identical seeds):
+
+| Next-frame predictor | 1 frame | 2 frames |
+|---|---|---|
+| Linear ridge (information ceiling proxy) | 0.000856 | **0.000274** |
+| Trained world model (current v3-era loss) | 0.000921 | 0.001750 |
+
+Two findings:
+
+1. **The velocity information is real**: a linear model improves 3.1× with
+   the stacked input.
+2. **The current training recipe cannot exploit it** — the trained world
+   model with 1 frame merely matches its linear ceiling, and with 2 frames
+   lands 6× *below* it (a plain ridge beats the full
+   encoder→dynamics→decoder stack). This is the same pattern as the
+   oracle-vs-GRU identifiability gap: information present, L2-anchored
+   self-predictive recipe unable to use it. The comparison is re-run in B7
+   after the objective is replaced (EMA-target / VICReg).
+
 ## Limitations & ethical considerations
 
 - Trained and evaluated only on a synthetic toy environment; no transfer claims.

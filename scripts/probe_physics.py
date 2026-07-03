@@ -45,7 +45,7 @@ TARGET_NAMES = ["gravity", "friction_agent", "friction_box"]
 BELIEF_TARGET_KEYS = ["gravity", "friction_agent", "friction_box"]
 
 
-def _load_encoder(checkpoint_path: str) -> ContinuousEncoder:
+def _load_encoder(checkpoint_path: str) -> tuple[ContinuousEncoder, dict[str, str]]:
     state_dict, meta = load_checkpoint(
         checkpoint_path,
         expected_model_class="ContinuousEncoder+StructuredDynamics",
@@ -69,7 +69,7 @@ def _load_encoder(checkpoint_path: str) -> ContinuousEncoder:
     )
     encoder.load_state_dict(encoder_state)
     encoder.eval()
-    return encoder
+    return encoder, meta
 
 
 def _probe_belief_encoder(
@@ -185,12 +185,8 @@ def main() -> None:
     parser.add_argument("--train-frac", type=float, default=0.8)
     args = parser.parse_args()
 
-    from atlas_wm.data.dataset import DEFAULT_OBS_SCALE, reject_legacy_normalized
+    from atlas_wm.data.dataset import ATLASDataset
 
-    reject_legacy_normalized(args.data_dir)
-    # Same in-memory scaling the training datasets apply (v4 B2) — the encoder
-    # was trained on [0, 1] observations, so the probe must feed it the same.
-    obs = np.load(f"{args.data_dir}/{args.split}_obs.npy") / DEFAULT_OBS_SCALE
     physics_path = f"{args.data_dir}/{args.split}_physics.npy"
     if not os.path.exists(physics_path):
         print(f"ERROR: physics labels not found at {physics_path}")
@@ -198,7 +194,15 @@ def main() -> None:
         return
 
     physics = np.load(physics_path)
-    encoder = _load_encoder(args.checkpoint)
+    encoder, meta = _load_encoder(args.checkpoint)
+
+    # Feed the probe the same view the encoder was trained on: ATLASDataset
+    # applies the in-memory scaling (v4 B2) and, when the checkpoint was
+    # trained with frame stacking (v4 B6), the same stacked frames. Row count
+    # and order are unchanged by stacking, so physics labels stay aligned.
+    frame_stack = int(meta.get("frame_stack", "1"))
+    ds = ATLASDataset(args.data_dir, split=args.split, frame_stack=frame_stack)
+    obs = ds.observations
 
     # Episode-grouped probe split when episode IDs exist (v4 B5, finding M3).
     eps_path = f"{args.data_dir}/{args.split}_episode_ids.npy"

@@ -80,8 +80,12 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
     print(f"Using device: {device}")
     print(f"Config: {args.config} | Seed: {seed}")
 
-    train_dataset = ATLASDataset(data_dir, split="train")
-    val_dataset = ATLASDataset(data_dir, split="val")
+    # v4 B6: frame stacking. A single position frame makes one-step latent
+    # prediction ill-posed (velocity unobservable, finding M2); 2 stacked
+    # frames make it observable. The encoder consumes input_dim * frame_stack.
+    frame_stack: int = mcfg.get("frame_stack", 1)
+    train_dataset = ATLASDataset(data_dir, split="train", frame_stack=frame_stack)
+    val_dataset = ATLASDataset(data_dir, split="val", frame_stack=frame_stack)
 
     batch_size: int = tcfg["batch_size"]
     train_loader = DataLoader(
@@ -97,7 +101,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
     d_static: int = d_immutable + mcfg["d_static_slow"]
     d_dynamic: int = mcfg["d_dynamic"]
     d_controllable: int = mcfg["d_controllable"]
-    input_dim: int = mcfg["input_dim"]
+    input_dim: int = mcfg["input_dim"] * frame_stack
     action_dim: int = cfg["environment"]["action_space_size"]
 
     encoder = ContinuousEncoder(
@@ -281,6 +285,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
                         "d_immutable": str(d_immutable),
                         "d_dynamic": str(d_dynamic),
                         "d_controllable": str(d_controllable),
+                        "frame_stack": str(frame_stack),
                         "seed": str(seed),
                     }
                 )

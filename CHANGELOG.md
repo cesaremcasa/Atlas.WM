@@ -17,6 +17,18 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   measured the box-containment bug fixed in B1. See the retraction notice in
   `docs/MODEL_CARD.md`; full re-baseline lands with B5.
 
+### Added (v4 B6 — frame stacking)
+
+- **`frame_stack: 2` is the new default model input**: `ATLASDataset`
+  concatenates the previous same-episode frame (velocity becomes observable,
+  finding M2); `train.py` plumbs it through encoder/decoder widths and
+  checkpoint metadata; `probe_physics.py` feeds the encoder the same view it
+  was trained on. Honest acceptance result: a linear ridge improves 3.1×
+  with stacked input (0.000856 → 0.000274 next-frame MSE) while the trained
+  world model under the current v3-era loss gets *worse* (0.000921 →
+  0.001750) — the recipe, not the information, is the bottleneck; the
+  comparison is re-run after B7 replaces the objective.
+
 ### Changed (v4 B5 — re-baseline)
 
 - **New identifiability baseline** on the corrected environment with
