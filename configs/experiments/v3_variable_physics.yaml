@@ -40,8 +40,15 @@ training:
   lambda_recon: 1.0
   lambda_slow_drift: 0.1
   lambda_action_invariance: 0.001
-  lambda_var_penalty: 0.001
-  lambda_latent_l2: 0.01        # anchors ‖z_full‖; stops self-predictive representation explosion
+  # v4 B7: stable self-predictive objective — "vicreg" (variance+covariance
+  # on the encoder output; ablation winner — EMA partially collapses at this
+  # scale), "ema" (EMA-target encoder), or
+  # "legacy" (v3.x L2 anchor, comparison only). Retires lambda_latent_l2.
+  objective: "vicreg"
+  ema_tau: 0.995
+  lambda_var: 1.0              # vicreg only: per-dim std hinge weight
+  lambda_cov: 0.05             # vicreg only: off-diagonal covariance weight
+  lambda_next_recon: 1.0       # prediction grounding: decode(dynamics(z)) vs next_obs
   lambda_physics: 0.0          # 0 for world model training; physics encoding is via PhysicsBeliefEncoder
   adv_warmup_epochs: 5
   critic_lr_factor: 1.0
