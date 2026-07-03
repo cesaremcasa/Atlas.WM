@@ -178,6 +178,39 @@ Two findings:
    self-predictive recipe unable to use it. The comparison is re-run in B7
    after the objective is replaced (EMA-target / VICReg).
 
+## Stable objective + prediction grounding (v4 B7)
+
+The v3.x objective (online-detached self-predictive target + L2 scale
+anchor + a variance hinge on the wrong tensor) is replaced. Two candidates
+were ablated, and a **prediction-grounding term** was added — nothing in the
+old loss optimized the ``decoder∘dynamics`` composition that inference uses:
+
+| Recipe (obs-space next-frame MSE, val) | 1 frame | 2 frames |
+|---|---|---|
+| legacy (L2 anchor) | 0.000921 | 0.001750 |
+| EMA target + grounding | — | 0.001122 |
+| **VICReg + grounding (new default)** | 0.001055 | **0.000996** |
+| Linear ridge ceiling | 0.000856 | 0.000274 |
+
+Findings:
+
+1. **VICReg wins the ablation**: healthy latent dispersion (mean per-dim
+   std ≈ 0.99) with no scale anchor, while the EMA-target encoder partially
+   collapses here (std ≈ 0.09). ``objective: vicreg`` is the new default;
+   ``ema`` remains available.
+2. **Frame stacking now helps** (0.000996 vs 0.001055) — under the legacy
+   recipe it was 90% *worse*. The B6 direction is vindicated.
+3. **43% error reduction** vs the legacy 2-frame recipe, with
+   ``lambda_latent_l2`` retired entirely.
+4. **Open gap**: 3.6× above the 2-frame linear ceiling. The one-step
+   information is demonstrably linearly extractable; remaining suspects are
+   training length/schedule and the structured-latent routing bottleneck.
+   Tracked for B8+ alongside the multi-step rollout loss.
+
+Checkpoint selection and early stopping now use the objective-agnostic
+observation-space next-frame MSE (latent losses are not comparable across
+objectives).
+
 ## Limitations & ethical considerations
 
 - Trained and evaluated only on a synthetic toy environment; no transfer claims.

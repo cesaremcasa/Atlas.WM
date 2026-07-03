@@ -29,6 +29,7 @@ from atlas_wm.models.identifiability import (
     encoder_adversarial_loss,
 )
 from atlas_wm.models.structured_dynamics import StructuredDynamics
+from atlas_wm.training.objectives import ema_update, make_ema_target, vicreg_regularizer
 from atlas_wm.utils.seeding import seed_worker, set_seed
 
 _BASE_CONFIG = os.path.join(os.path.dirname(__file__), "..", "configs", "base.yaml")
@@ -139,12 +140,25 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
     lam_recon: float = tcfg.get("lambda_recon", 1.0)
     lam_drift: float = tcfg["lambda_slow_drift"]
     lam_adv: float = tcfg["lambda_action_invariance"]
-    lam_var: float = tcfg.get("lambda_var_penalty", 0.001)
-    lam_latent_l2: float = tcfg.get("lambda_latent_l2", 0.01)
     grad_clip: float = tcfg["grad_clip_norm"]
     patience: int = tcfg["early_stopping_patience"]
     num_epochs: int = tcfg["num_epochs"]
     adv_warmup: int = tcfg.get("adv_warmup_epochs", 0)
+
+    # v4 B7: stable self-predictive objective (finding H1). "ema" (default)
+    # predicts a lagged EMA-encoder target; "vicreg" keeps the online
+    # detached target with variance+covariance regularization on the encoder
+    # output; "legacy" reproduces the v3.x recipe (L2 anchor + mis-placed
+    # variance hinge) for comparison only.
+    objective: str = tcfg.get("objective", "ema")
+    if objective not in ("ema", "vicreg", "legacy"):
+        raise ValueError(f"training.objective must be ema|vicreg|legacy, got {objective!r}")
+    ema_tau: float = tcfg.get("ema_tau", 0.995)
+    lam_var: float = tcfg.get("lambda_var", 1.0 if objective == "vicreg" else 0.001)
+    lam_cov: float = tcfg.get("lambda_cov", 0.05)
+    lam_next_recon: float = tcfg.get("lambda_next_recon", 1.0)
+    lam_latent_l2: float = tcfg.get("lambda_latent_l2", 0.01)  # legacy only
+    target_encoder = make_ema_target(encoder) if objective == "ema" else None
 
     max_steps: int | None = args.max_steps if args.max_steps else None
     checkpoint_dir: str = getattr(args, "output_checkpoint", None) or os.path.join(
@@ -156,7 +170,12 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
     best_val_loss = float("inf")
     patience_counter = 0
     steps = 0
-    history: dict[str, list[float]] = {"train": [], "val_pred": [], "val_recon": []}
+    history: dict[str, list[float]] = {
+        "train": [],
+        "val_pred": [],
+        "val_recon": [],
+        "val_next_mse": [],
+    }
 
     for epoch in range(num_epochs):
         encoder.train()
@@ -174,7 +193,10 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             z_t1_pred = dynamics(z_t, action)
 
             with torch.no_grad():
-                z_t1_true = encoder(next_obs)
+                if objective == "ema":
+                    z_t1_true = target_encoder(next_obs)
+                else:
+                    z_t1_true = encoder(next_obs)
 
             c_loss = critic_loss(critic, z_t["z_static_immutable"].detach(), action)
             critic_optimizer.zero_grad()
@@ -184,26 +206,36 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
 
             recon_loss = nn.functional.mse_loss(decoder(z_t["z_full"]), obs)
             pred_loss = nn.functional.mse_loss(z_t1_pred["z_full"], z_t1_true["z_full"])
-            z_var = z_t1_pred["z_full"].var(dim=0).mean()
-            var_penalty = torch.clamp(1.0 - z_var, min=0)
+            # Prediction grounding (v4 B7): decode the PREDICTED latent and
+            # match the actual next observation. Without this term nothing in
+            # training optimizes the decoder∘dynamics path that inference
+            # uses — latent-matching plus current-frame reconstruction leave
+            # a composition misalignment the model never sees (measured: the
+            # 2-frame model sat 6× above its linear ceiling).
+            next_recon_loss = nn.functional.mse_loss(decoder(z_t1_pred["z_full"]), next_obs)
             drift_penalty = z_t1_pred["delta_slow"].norm(dim=-1).mean()
-            # Latent-magnitude penalty. pred_loss is self-predictive (target is the
-            # encoder's own detached output over next_obs), which has a degenerate
-            # solution: the encoder can inflate its representation scale without bound
-            # while dynamics tracks it, blowing up pred_loss ~10x/epoch after a few
-            # stable epochs. This L2 anchor removes that runaway direction; validated
-            # at the full 50k scale where reconstruction alone does not hold it.
-            latent_l2 = z_t["z_full"].pow(2).mean()
             adv_loss = encoder_adversarial_loss(critic, z_t["z_static_immutable"], action)
             effective_lam_adv = lam_adv if epoch >= adv_warmup else 0.0
             loss = (
                 lam_recon * recon_loss
                 + pred_loss
-                + lam_var * var_penalty
+                + lam_next_recon * next_recon_loss
                 + lam_drift * drift_penalty
-                + lam_latent_l2 * latent_l2
                 + effective_lam_adv * adv_loss
             )
+            if objective == "vicreg":
+                # Anti-collapse + anti-redundancy on the ENCODER output — the
+                # tensor that can actually collapse (the v3.x hinge sat on the
+                # dynamics output and fought the L2 anchor).
+                var_loss, cov_loss = vicreg_regularizer(z_t["z_full"])
+                loss = loss + lam_var * var_loss + lam_cov * cov_loss
+            elif objective == "legacy":
+                z_var = z_t1_pred["z_full"].var(dim=0).mean()
+                loss = (
+                    loss
+                    + lam_var * torch.clamp(1.0 - z_var, min=0)
+                    + lam_latent_l2 * z_t["z_full"].pow(2).mean()
+                )
 
             if torch.isnan(loss):
                 print("NaN detected — skipping batch")
@@ -213,6 +245,8 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             loss.backward()
             torch.nn.utils.clip_grad_norm_(params, grad_clip)
             optimizer.step()
+            if target_encoder is not None:
+                ema_update(encoder, target_encoder, ema_tau)
 
             train_loss += loss.item()
             steps += 1
@@ -226,6 +260,8 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
         decoder.eval()
         val_pred_loss = 0.0
         val_recon_loss = 0.0
+        val_next_mse = 0.0
+        base_dim: int = mcfg["input_dim"]
 
         with torch.no_grad():
             for batch in val_loader:
@@ -239,19 +275,29 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
                     z_t1_pred["z_full"], z_t1_true["z_full"]
                 ).item()
                 val_recon_loss += nn.functional.mse_loss(decoder(z_t["z_full"]), obs).item()
+                # Observation-space next-frame error (last base_dim dims are
+                # the actual next frame under stacking). Objective-agnostic —
+                # latent pred losses are not comparable across objectives, so
+                # checkpoint selection uses THIS metric (v4 B7).
+                val_next_mse += nn.functional.mse_loss(
+                    decoder(z_t1_pred["z_full"])[:, -base_dim:], next_obs[:, -base_dim:]
+                ).item()
 
         val_pred_loss /= max(len(val_loader), 1)
         val_recon_loss /= max(len(val_loader), 1)
-        val_loss = val_pred_loss + lam_recon * val_recon_loss
+        val_next_mse /= max(len(val_loader), 1)
+        val_loss = val_next_mse + lam_recon * val_recon_loss
         history["train"].append(train_loss)
         history["val_pred"].append(val_pred_loss)
         history["val_recon"].append(val_recon_loss)
+        history["val_next_mse"].append(val_next_mse)
         scheduler.step(val_loss)
         current_lr = optimizer.param_groups[0]["lr"]
 
         print(
             f"Epoch {epoch + 1:3d} | Train: {train_loss:.6f} | "
-            f"Val pred: {val_pred_loss:.6f} recon: {val_recon_loss:.6f} | LR: {current_lr:.2e}"
+            f"Val next-frame: {val_next_mse:.6f} pred: {val_pred_loss:.6f} "
+            f"recon: {val_recon_loss:.6f} | LR: {current_lr:.2e}"
         )
 
         if val_loss < best_val_loss:
@@ -286,6 +332,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
                         "d_dynamic": str(d_dynamic),
                         "d_controllable": str(d_controllable),
                         "frame_stack": str(frame_stack),
+                        "objective": objective,
                         "seed": str(seed),
                     }
                 )

@@ -17,6 +17,22 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   measured the box-containment bug fixed in B1. See the retraction notice in
   `docs/MODEL_CARD.md`; full re-baseline lands with B5.
 
+### Added (v4 B7 — stable objective + prediction grounding)
+
+- **`training.objective`**: `vicreg` (default; variance hinge + covariance
+  penalty on the encoder output — the tensor that can collapse) or `ema`
+  (EMA-target encoder, BYOL/TD-MPC2 lineage) replace the v3.x recipe;
+  `legacy` retained for comparison. `lambda_latent_l2` and the mis-placed
+  variance penalty are retired.
+- **Prediction grounding** (`lambda_next_recon`): the loss now optimizes
+  `decoder(dynamics(z))` against the actual next observation — the
+  inference path was previously never trained directly.
+- **Objective-agnostic model selection**: checkpoints and early stopping
+  now use observation-space next-frame MSE.
+- Result on the noisy re-baseline data (2 frames): 0.001750 → **0.000996**
+  (43% ↓); frame stacking now helps (it hurt under the legacy recipe); the
+  remaining 3.6× gap to the linear ceiling is tracked for B8+.
+
 ### Added (v4 B6 — frame stacking)
 
 - **`frame_stack: 2` is the new default model input**: `ATLASDataset`
