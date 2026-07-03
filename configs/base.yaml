@@ -8,7 +8,8 @@ model:
   d_static_slow: 8         # soft residual with drift penalty (AD-2)
   d_dynamic: 32
   d_controllable: 16
-  input_dim: 6             # 3 objects × 2 coords
+  input_dim: 6             # 3 objects × 2 coords (per frame)
+  frame_stack: 2           # stacked frames; 2 makes velocity observable (v4 B6, M2)
 
 environment:
   grid_size: 20

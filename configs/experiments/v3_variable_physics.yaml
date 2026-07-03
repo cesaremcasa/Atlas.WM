@@ -11,6 +11,7 @@ model:
   d_dynamic: 32
   d_controllable: 16
   input_dim: 6
+  frame_stack: 2
 
 environment:
   grid_size: 20
