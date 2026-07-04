@@ -17,6 +17,18 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   measured the box-containment bug fixed in B1. See the retraction notice in
   `docs/MODEL_CARD.md`; full re-baseline lands with B5.
 
+### Added (v4 B13 — dissipative symplectic dynamics head)
+
+- **`model.dynamics_head: hamiltonian`**: z_dynamic splits into (q, p);
+  dissipative symplectic-Euler step with learned force field and per-dim
+  damping conditioned on z_static_slow (friction analog; contraction
+  tested). Honest A/B verdict: **relative OOD robustness is real**
+  (gravity 8–12, outside train range: +12% degradation vs the residual
+  head's +69% at h=1) **but absolute error is worse everywhere** (3.5× in
+  distribution). Ships as a non-default option; echoes the literature that
+  gains come from second-order structure, not symplecticity per se —
+  revisit with tuned capacity on MuJoCo (B14+).
+
 ### Added (v4 B12 — belief conditioning, RMA phase 2)
 
 - **`scripts/precompute_belief.py`** runs the trained belief GRU causally
