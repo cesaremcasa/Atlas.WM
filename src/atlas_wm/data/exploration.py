@@ -113,3 +113,47 @@ class InfoSeekingPolicy:
         if norm < 1e-8:
             return int(self.rng.integers(len(FORCES)))
         return int(np.argmax(_UNIT_FORCES @ (desired / norm)))
+
+
+class CoastPushPolicy:
+    """MuJoCo information-seeking policy (v4.1): PUSH -> COAST cycle.
+
+    Random-policy MuJoCo data identifies nothing (R^2 ~ 0, measured):
+    friction needs free sliding (never happens under continuous forcing)
+    and mass needs contacts (rare under random actions). This policy
+    manufactures both informative events:
+
+    - PUSH: drive at the nearest box (contacts -> mass response);
+    - COAST: no-op actions (index 8) after building speed -> pure sliding
+      decay reveals the mu*g friction product.
+
+    Requires MujocoPointMass(include_noop=True).
+    """
+
+    NOOP = 8
+
+    def __init__(self, rng, push_steps: int = 14, coast_steps: int = 10, epsilon: float = 0.08):
+        self.rng = rng
+        self.push_steps = push_steps
+        self.coast_steps = coast_steps
+        self.epsilon = epsilon
+        self._t = 0
+
+    def reset(self) -> None:
+        self._t = 0
+
+    def act(self, obs) -> int:
+        agent, box0, box1 = obs[:2], obs[2:4], obs[4:6]
+        t = self._t
+        self._t += 1
+        if self.rng.random() < self.epsilon:
+            return int(self.rng.integers(9))
+        cycle = self.push_steps + self.coast_steps
+        if (t % cycle) >= self.push_steps:
+            return self.NOOP  # COAST
+        target = box0 if np.linalg.norm(agent - box0) <= np.linalg.norm(agent - box1) else box1
+        desired = target - agent
+        n = np.linalg.norm(desired)
+        if n < 1e-8:
+            return int(self.rng.integers(8))
+        return int(np.argmax(_UNIT_FORCES @ (desired / n)))

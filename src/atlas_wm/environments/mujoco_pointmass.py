@@ -71,6 +71,7 @@ class MujocoPointMass(gym.Env):
         mass_range: tuple[float, float] = (0.3, 1.5),
         gravity_range: tuple[float, float] = (7.0, 12.0),
         frame_skip: int = 5,
+        include_noop: bool = False,
     ) -> None:
         super().__init__()
         self.randomize_physics = randomize_physics
@@ -78,7 +79,11 @@ class MujocoPointMass(gym.Env):
         self.mass_range = mass_range
         self.gravity_range = gravity_range
         self.frame_skip = frame_skip
-        self.action_space = spaces.Discrete(8)
+        # v4.1: optional no-op action (index 8, zero ctrl) — COAST phases
+        # let sliding friction reveal itself (mu*g decay), impossible under
+        # continuous forcing.
+        self.include_noop = include_noop
+        self.action_space = spaces.Discrete(9 if include_noop else 8)
         self.observation_space = spaces.Box(low=-1.2, high=1.2, shape=(6,), dtype=np.float32)
         self._friction = 0.35
         self._mass0 = self._mass1 = 0.8
@@ -124,7 +129,8 @@ class MujocoPointMass(gym.Env):
         return self._get_obs(), self._physics_info()
 
     def step(self, action: int):
-        self.data.ctrl[:] = _DIRS[int(action)]
+        a = int(action)
+        self.data.ctrl[:] = 0.0 if (self.include_noop and a == 8) else _DIRS[a]
         for _ in range(self.frame_skip):
             mujoco.mj_step(self.model, self.data)
         return self._get_obs(), 0.0, False, False, self._physics_info()
