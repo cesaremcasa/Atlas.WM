@@ -123,3 +123,87 @@ class TestManifestRoundtrip:
         m2 = build_manifest(str(tmp_path), KEY)
         assert m1["files"] == m2["files"]
         assert m1["manifest_hmac"] == m2["manifest_hmac"]
+
+
+class TestFailClosedLoading:
+    """v4 B17 (finding H4): require_signature=True turns every fail-open
+    path into an error."""
+
+    def _save(self, tmp_path, name="model.safetensors"):
+        import torch
+
+        from atlas_wm.checkpointing.io import save_checkpoint
+
+        path = str(tmp_path / name)
+        save_checkpoint(
+            {"w": torch.zeros(2)},
+            path,
+            {
+                "model_class": "M",
+                "git_sha": "x",
+                "config_hash": "y",
+                "env_hash": "z",
+                "trained_at_utc": "t",
+                "atlas_schema_version": "3.0.0",
+            },
+        )
+        return path
+
+    def test_missing_manifest_rejected(self, tmp_path):
+        import pytest
+
+        from atlas_wm.checkpointing.io import SignatureMismatch, load_checkpoint
+
+        path = self._save(tmp_path)
+        with pytest.raises(SignatureMismatch, match="no manifest"):
+            load_checkpoint(
+                path, expected_model_class="M", strict_env=False, require_signature=True
+            )
+
+    def test_missing_key_rejected(self, tmp_path, monkeypatch):
+        import pytest
+
+        from atlas_wm.checkpointing.io import SignatureMismatch, load_checkpoint
+        from atlas_wm.checkpointing.signing import build_manifest, write_manifest
+
+        path = self._save(tmp_path)
+        monkeypatch.setenv("ATLAS_SIGNING_KEY", "aa" * 16)
+        write_manifest(
+            str(tmp_path / "manifest.sig"), build_manifest(str(tmp_path), bytes.fromhex("aa" * 16))
+        )
+        monkeypatch.delenv("ATLAS_SIGNING_KEY")
+        with pytest.raises(SignatureMismatch, match="ATLAS_SIGNING_KEY"):
+            load_checkpoint(
+                path, expected_model_class="M", strict_env=False, require_signature=True
+            )
+
+    def test_unlisted_file_rejected(self, tmp_path, monkeypatch):
+        import pytest
+
+        from atlas_wm.checkpointing.io import SignatureMismatch, load_checkpoint
+        from atlas_wm.checkpointing.signing import build_manifest, write_manifest
+
+        self._save(tmp_path)  # signed below
+        monkeypatch.setenv("ATLAS_SIGNING_KEY", "bb" * 16)
+        write_manifest(
+            str(tmp_path / "manifest.sig"), build_manifest(str(tmp_path), bytes.fromhex("bb" * 16))
+        )
+        evil = self._save(tmp_path, name="evil.safetensors")  # added AFTER signing
+        with pytest.raises(SignatureMismatch, match="not listed"):
+            load_checkpoint(
+                evil, expected_model_class="M", strict_env=False, require_signature=True
+            )
+
+    def test_valid_signed_load_passes(self, tmp_path, monkeypatch):
+        from atlas_wm.checkpointing.io import load_checkpoint
+        from atlas_wm.checkpointing.signing import build_manifest, write_manifest
+
+        path = self._save(tmp_path)
+        monkeypatch.setenv("ATLAS_SIGNING_KEY", "cc" * 16)
+        write_manifest(
+            str(tmp_path / "manifest.sig"), build_manifest(str(tmp_path), bytes.fromhex("cc" * 16))
+        )
+        state, meta = load_checkpoint(
+            path, expected_model_class="M", strict_env=False, require_signature=True
+        )
+        assert "w" in state and meta["model_class"] == "M"
