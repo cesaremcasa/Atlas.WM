@@ -80,13 +80,24 @@ def build_mujoco_features(
     decel_valid = free0 | free1
     decel = torch.where(decel_valid, decel.clamp(-2.0, 15.0), torch.zeros_like(decel))
 
-    # Contact response: box speed generated per unit agent speed -> ~1/mass.
-    contact0 = (d_a0 < 0.16) & (sp > 0.05)
-    contact1 = (d_a1 < 0.16) & (sp > 0.05)
+    # Contact response -> ~1/mass, v4.1 part 3: restrict to ALIGNED
+    # (head-on) contacts — agent velocity pointing at the box (cos > 0.8).
+    # The raw speed-ratio confounded contact geometry with mass (measured:
+    # R^2 -0.27); glancing hits transfer arbitrary momentum fractions.
+    v_agent_unit = v_k[:, :, 0] / v_k[:, :, 0].norm(dim=-1, keepdim=True).clamp_min(1e-8)
+    to_b0 = p_start[:, :, 1] - p_start[:, :, 0]
+    to_b1 = p_start[:, :, 2] - p_start[:, :, 0]
+    align0 = (v_agent_unit * (to_b0 / to_b0.norm(dim=-1, keepdim=True).clamp_min(1e-8))).sum(-1)
+    align1 = (v_agent_unit * (to_b1 / to_b1.norm(dim=-1, keepdim=True).clamp_min(1e-8))).sum(-1)
+    contact0 = (d_a0 < 0.16) & (sp > 0.05) & (align0 > 0.8)
+    contact1 = (d_a1 < 0.16) & (sp > 0.05) & (align1 > 0.8)
+    # Impulse proxy: box velocity CHANGE per unit incoming agent speed.
+    dbv0 = (v_k[:, :, 1] - v_prev[:, :, 1]).norm(dim=-1)
+    dbv1 = (v_k[:, :, 2] - v_prev[:, :, 2]).norm(dim=-1)
     resp = torch.where(
         contact0,
-        bsp0 / sp.clamp_min(1e-6),
-        torch.where(contact1, bsp1 / sp.clamp_min(1e-6), torch.zeros_like(sp)),
+        dbv0 / sp.clamp_min(1e-6),
+        torch.where(contact1, dbv1 / sp.clamp_min(1e-6), torch.zeros_like(sp)),
     ).clamp(0.0, 5.0)
     resp_valid = contact0 | contact1
 
