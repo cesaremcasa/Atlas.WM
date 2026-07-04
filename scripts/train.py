@@ -24,11 +24,6 @@ from atlas_wm.data.dataset import stack_window
 from atlas_wm.data.episode_dataset import EpisodeATLASDataset
 from atlas_wm.models.continuous_encoder import ContinuousEncoder
 from atlas_wm.models.decoder import Decoder
-from atlas_wm.models.identifiability import (
-    ActionInvarianceCritic,
-    critic_loss,
-    encoder_adversarial_loss,
-)
 from atlas_wm.models.structured_dynamics import StructuredDynamics
 from atlas_wm.training.objectives import ema_update, make_ema_target, vicreg_regularizer
 from atlas_wm.utils.seeding import seed_worker, set_seed
@@ -129,16 +124,11 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
     ).to(device)
     d_full = d_static + d_dynamic + d_controllable
     decoder = Decoder(d_full=d_full, output_dim=input_dim).to(device)
-    critic = ActionInvarianceCritic(d_immutable=encoder.d_immutable, action_dim=action_dim).to(
-        device
-    )
 
     lr: float = tcfg["learning_rate"]
     weight_decay: float = tcfg.get("weight_decay", 1e-4)
-    critic_lr_factor: float = tcfg.get("critic_lr_factor", 1.0)
     params = list(encoder.parameters()) + list(dynamics.parameters()) + list(decoder.parameters())
     optimizer = optim.Adam(params, lr=lr, weight_decay=weight_decay)
-    critic_optimizer = optim.Adam(critic.parameters(), lr=lr * critic_lr_factor)
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(
         optimizer,
         patience=tcfg["lr_scheduler_patience"],
@@ -147,11 +137,18 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
 
     lam_recon: float = tcfg.get("lambda_recon", 1.0)
     lam_drift: float = tcfg["lambda_slow_drift"]
-    lam_adv: float = tcfg["lambda_action_invariance"]
     grad_clip: float = tcfg["grad_clip_norm"]
     patience: int = tcfg["early_stopping_patience"]
     num_epochs: int = tcfg["num_epochs"]
-    adv_warmup: int = tcfg.get("adv_warmup_epochs", 0)
+    # v4 B9: immutable-anchor weights (replace the retired adversarial
+    # critic). Default 0.0: on CruelGridworld a single stacked input carries
+    # no observable episode identity (walls invisible, physics needs temporal
+    # context), so the anchor buys nothing and costs ~25% at h=1 — enable
+    # (>= 0.1) when the input exposes episode invariants (B12 belief
+    # integration / B14+ richer envs). See MODEL_CARD "Immutable anchor".
+    lam_imm_inv: float = tcfg.get("lambda_imm_invariance", 0.0)
+    lam_imm_var: float = tcfg.get("lambda_imm_variance", 0.0)
+    lam_imm_cov: float = tcfg.get("lambda_imm_cov", 0.0)
 
     # v4 B7: stable self-predictive objective (finding H1). "ema" (default)
     # predicts a lagged EMA-encoder target; "vicreg" keeps the online
@@ -190,7 +187,6 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
         encoder.train()
         dynamics.train()
         decoder.train()
-        critic.train()
         train_loss = 0.0
 
         for batch in train_loader:
@@ -199,21 +195,21 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             inputs = stack_window(obs_w, frame_stack)  # [B, W-1, input_dim]
             bsz, n_pos, _ = inputs.shape  # n_pos = rollout_k + 1
 
-            # Encode all target positions in one pass (detached / EMA).
+            # Encode ALL window positions with grad (v4 B9): the immutable
+            # anchor needs gradients at every position, and the encoder is a
+            # small MLP so the extra passes are cheap.
+            z_all = encoder(inputs.reshape(bsz * n_pos, -1))
+            z_imm_all = z_all["z_static_immutable"].reshape(bsz, n_pos, -1)
+
             with torch.no_grad():
-                tgt_enc = target_encoder if objective == "ema" else encoder
-                z_targets = tgt_enc(inputs.reshape(bsz * n_pos, -1))["z_full"].reshape(
-                    bsz, n_pos, -1
-                )
+                if objective == "ema":
+                    z_targets = target_encoder(inputs.reshape(bsz * n_pos, -1))["z_full"].reshape(
+                        bsz, n_pos, -1
+                    )
+                else:
+                    z_targets = z_all["z_full"].detach().reshape(bsz, n_pos, -1)
 
-            z_0 = encoder(inputs[:, 0])
-            first_action = act_w[:, 1]
-
-            c_loss = critic_loss(critic, z_0["z_static_immutable"].detach(), first_action)
-            critic_optimizer.zero_grad()
-            c_loss.backward()
-            torch.nn.utils.clip_grad_norm_(critic.parameters(), grad_clip)
-            critic_optimizer.step()
+            z_0 = {k: v.reshape(bsz, n_pos, -1)[:, 0] for k, v in z_all.items()}
 
             # v4 B8: K-step self-fed rollout — each predicted latent feeds the
             # next step, with per-step latent supervision and prediction
@@ -238,14 +234,30 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             drift_penalty = drift_penalty / rollout_k
 
             recon_loss = nn.functional.mse_loss(decoder(z_0["z_full"]), inputs[:, 0])
-            adv_loss = encoder_adversarial_loss(critic, z_0["z_static_immutable"], first_action)
-            effective_lam_adv = lam_adv if epoch >= adv_warmup else 0.0
+
+            # v4 B9 — immutable anchor (the intervention loss the v3.x plan
+            # prescribed and never implemented, finding C3). The passthrough
+            # alone is vacuous: the encoder's trivially optimal z_imm is a
+            # constant. Content is enforced from two sides:
+            #   invariance — z_imm identical across the same-episode window;
+            #   separation — VICReg variance/covariance across the batch of
+            #     per-episode means, killing the collapsed-constant solution.
+            # (The adversarial critic is retired: with random-policy data
+            # I(z_imm; action) = 0 for ANY encoder — finding C4.)
+            imm_invariance = nn.functional.mse_loss(
+                z_imm_all[:, 1:], z_imm_all[:, :1].expand_as(z_imm_all[:, 1:])
+            )
+            imm_episode_mean = z_imm_all.mean(dim=1)
+            imm_var_loss, imm_cov_loss = vicreg_regularizer(imm_episode_mean)
+
             loss = (
                 lam_recon * recon_loss
                 + pred_loss
                 + lam_next_recon * next_recon_loss
                 + lam_drift * drift_penalty
-                + effective_lam_adv * adv_loss
+                + lam_imm_inv * imm_invariance
+                + lam_imm_var * imm_var_loss
+                + lam_imm_cov * imm_cov_loss
             )
             if objective == "vicreg":
                 # Anti-collapse + anti-redundancy on the ENCODER output — the
@@ -347,8 +359,6 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
                     **{f"encoder.{k}": v for k, v in encoder.state_dict().items()},
                     **{f"dynamics.{k}": v for k, v in dynamics.state_dict().items()},
                     **{f"decoder.{k}": v for k, v in decoder.state_dict().items()},
-                    # Critic included so adversarial training can resume (M8).
-                    **{f"critic.{k}": v for k, v in critic.state_dict().items()},
                 }
                 metadata = make_metadata(
                     model_class="ContinuousEncoder+StructuredDynamics",

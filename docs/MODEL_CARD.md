@@ -240,6 +240,37 @@ be modeled away by any deterministic predictor.
 guarantee now has an end-to-end measurement, not just a single-step
 tautology test.
 
+## Immutable anchor & critic retirement (v4 B9)
+
+The adversarial `ActionInvarianceCritic` is **retired from training**
+(module kept, deprecated): with random-policy data the action is sampled
+independently of the observation, so `I(z_imm(obs); action) = 0` for *any*
+encoder — the adversarial game reduced to an arms race around noise
+(finding C4). Action routing is architectural: actions enter only
+`control_net` in `StructuredDynamics`.
+
+In its place, the **immutable anchor** implements the intervention loss the
+v3.x plan prescribed and never shipped (finding C3): z_imm must be
+invariant within a same-episode window (MSE to the first position) and
+variant across episodes (VICReg over per-episode batch means — kills the
+collapsed-constant solution that made the passthrough guarantee vacuous).
+
+Honest measurements:
+
+- **Mechanism validated**: on synthetic data with observable episode
+  identity, the across/within episode variance ratio exceeds the 10×
+  regression floor by orders of magnitude (`tests/test_imm_anchor.py`).
+- **This environment carries no signal for it**: a single 2-frame input
+  exposes no episode invariants (walls are unobservable; physics requires
+  temporal context), so the ratio stays ≈3 with or without the anchor while
+  h=1 prediction degrades ~25% (0.001165 control vs 0.001454 anchored; the
+  control run also confirms the B9 refactor is clean vs B8's 0.001157).
+- **Default: disabled on this env** (`lambda_imm_* = 0.0`), enable ≥ 0.1
+  when the input exposes episode invariants — belief-encoder integration
+  (B12) or richer environments (B14+). The DoD item "z_imm provably
+  informative" lands there, not here; leaving the anchor on today would be
+  paying real prediction error for provably absent information.
+
 ## Limitations & ethical considerations
 
 - Trained and evaluated only on a synthetic toy environment; no transfer claims.
