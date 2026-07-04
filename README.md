@@ -3,96 +3,78 @@
 [![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.1+-orange.svg)](https://pytorch.org/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Status](https://img.shields.io/badge/status-v4.0.0%20released-green.svg)](docs/v4.0-ROADMAP.md)
+[![Status](https://img.shields.io/badge/status-v4.0.0%20released-green.svg)](CHANGELOG.md)
 
-**Status:** **v4.0.0 released (2026-07-04)** — the correction-and-retraction rebuild. 17 of the 18 roadmap blocks landed (PRs #25–#43): environment and data-pipeline bugs fixed, two v3.x findings retracted with committed evidence, stable training objective (VICReg + prediction grounding + K-step rollouts), first positive learned physics identification (gravity R² 0.67 with active exploration, +39% over random data), causal belief conditioning, MuJoCo environment tier, uv lockfile, fail-closed checkpoint verification. See [`CHANGELOG.md`](CHANGELOG.md), the [model card](docs/MODEL_CARD.md) and [`docs/v4.0-ROADMAP.md`](docs/v4.0-ROADMAP.md).
+A **small, structured, verifiable, CPU-trainable world model** for physics
+identification research — the auditable counterpoint to billion-parameter
+video world models. Latent space decomposed into interpretable components
+with *architectural* guarantees; every claim in this repository is backed by
+a committed script, a reproducible number, and a regression test — including
+two public retractions of v3.x findings that did not survive re-verification.
 
-See [`CHANGELOG.md`](CHANGELOG.md), the [model card](docs/MODEL_CARD.md), and
-`scripts/export_onnx.py` for the ONNX export (`pip install 'atlas-wm[export]'`).
-**Author:** Cesar Augusto
+**Author:** Cesar Augusto · **v4.0.0** (2026-07-04, PRs #25–#44)
 
-A structured world model that decomposes the latent space into interpretable semantic components and enforces physical constraints through architectural guarantees rather than optimization targets.
+## What it can prove
 
----
+| Claim | Number |
+|---|---|
+| Physics is identifiable from position-only random-policy data | oracle friction R² **0.865** |
+| A learned belief identifies physics, given engineered dynamics features | gravity R² **+0.67** |
+| Data collection matters as much as the model (active vs random) | **+39%** belief quality |
+| The immutable-latent guarantee holds in open-loop rollouts | drift **exactly 0.0** |
+| The pipeline generalizes to real MuJoCo contact physics unchanged | **2.3×** gap to linear ceiling |
+
+Full ledger with evidence pointers, retractions, named findings and honest
+limits: [`docs/RESULTS.md`](docs/RESULTS.md).
 
 ## Architecture
 
-The latent space is split into four components:
+`z_full` (64) = `[ z_static_immutable (8) | z_static_slow (8) | z_dynamic (32) | z_controllable (16) ]`
 
-| Component | Description | Enforcement |
-|-----------|-------------|-------------|
-| `z_static_immutable` | Scene invariants that never change | Hard passthrough (AD-2) |
-| `z_static_slow` | Per-episode physics (gravity, friction) | Soft residual + drift penalty |
-| `z_dynamic` | Time-varying state (positions, velocities) | Residual update |
-| `z_controllable` | Action-sensitive components | Action-conditioned |
+| Component | Enforcement |
+|---|---|
+| `z_static_immutable` | hard passthrough in dynamics (AD-2) + optional cross-episode anchor (B9) |
+| `z_static_slow` | drift-penalized residual; optionally conditioned on a **causal physics belief** (GRU over engineered dynamics features, B10–B12) |
+| `z_dynamic` | residual MLP or **dissipative symplectic (q,p) head** (B13) |
+| `z_controllable` | action-conditioned (actions enter *only* here — architectural routing) |
 
-See `docs/Atlas-WM-v3-Architecture-Plan.md` for the full architecture and 8 locked design decisions.
+Training: VICReg-regularized self-predictive objective + prediction
+grounding + K-step self-fed rollouts (B7–B8). Environments: `CruelGridworld`
+(toy, 2D nonlinear gravity) and `MujocoPointMass` (real contact physics),
+with random or information-seeking data collection (B11).
 
----
-
-## Repository Layout
-
-```
-Atlas.WM/
-├── src/atlas_wm/          # installable package
-│   ├── models/            # ContinuousEncoder, StructuredDynamics, heads, losses
-│   ├── environments/      # cruel_gridworld.py (single canonical env)
-│   ├── data/              # ATLASDataset
-│   ├── checkpointing/     # safetensors I/O, signing, env hash
-│   └── utils/
-├── scripts/               # train.py, generate_data.py, split_data.py
-├── configs/
-│   ├── base.yaml
-│   └── experiments/       # v2_baseline.yaml, v3_hybrid_static.yaml
-├── tests/                 # flat pytest suite (unit + integration + physics + security)
-├── docs/                  # architecture plan, ADRs, model card
-├── archive/               # quarantined v2.0 artifacts (do not import)
-└── checkpoints/           # signed .safetensors only
-```
-
----
-
-## Quick Start
+## Quick start
 
 ```bash
-git clone https://github.com/cesaremcasa/Atlas.WM.git
-cd Atlas.WM
-
-python -m venv .venv && source .venv/bin/activate
-
-pip install -e .
-
-# Generate training data (50k samples)
-python scripts/generate_data.py
-
-# Split into train/val/test
+uv sync --extra dev
+python scripts/generate_data.py --randomize-physics --process-noise-std 0.05 \
+    --episode-reset-prob 0.02 --seed 42
 python scripts/split_data.py
-
-# Train
-python scripts/train.py
+python scripts/train.py --config configs/experiments/v3_variable_physics.yaml
+python scripts/evaluate.py --checkpoint checkpoints/best_model.safetensors
 ```
 
----
+All workflows (belief training, probing, active exploration, belief
+conditioning, signing, ONNX export): [`docs/USAGE.md`](docs/USAGE.md).
 
-## v3.0 Upgrade Progress
+## Repository layout
 
-| Block | Theme | Status |
-|-------|-------|--------|
-| 1 — Hygiene & Quarantine | Repo cleanup, `src/atlas_wm/` package | ✅ Complete |
-| 2 — CI & Lockfile | GitHub Actions, `requirements.lock`, SBOM | ✅ Complete |
-| 3 — Safetensors I/O | Remove `torch.save/load`, safetensors migration | ✅ Complete |
-| 4 — Checkpoint Signing | HMAC-SHA256 manifest | ✅ Complete |
-| 5 — Hybrid Static | `z_static_immutable` + `z_static_slow` | ✅ Complete |
-| 6 — Identifiability | Action-invariance critic (intervention loss was never implemented — v4 finding C3; lands in v4 B9) | ⚠️ Partial |
-| 7 — Encoder Tests | Full unit test coverage for `ContinuousEncoder` | ✅ Complete |
-| 8 — Physics Tests | Environment contract tests + chaos tripwire | ✅ Complete |
-| 9 — Determinism Canary | Seeded training reproducibility | ✅ Complete |
-| 10 — Multi-Object | Entity encoder, n_objects ∈ [3, 10] | ✅ Complete |
-| 11 — Partial Observability | Nearest-K wrapper, recurrent belief | ✅ Complete |
-| 12 — Variable Physics | Domain randomization, latent probing | ✅ Complete |
-| 13 — Release v3.0 | Model card, ONNX export, CHANGELOG, tagged release | ✅ Complete (tag pending) |
+```
+src/atlas_wm/        installable package (models, environments, data, training, checkpointing, eval, export)
+scripts/             pipeline entry points (generate, split, train, evaluate, probe, sign, export, oracle)
+configs/             base.yaml + experiments/
+tests/               195 tests: unit, physics contracts, canaries, security, regression locks
+docs/                RESULTS.md · USAGE.md · MODEL_CARD.md · v4.0-ROADMAP.md · historical postmortems
+archive/             quarantined legacy code (do not import)
+```
 
----
+## Documentation
+
+- [`docs/RESULTS.md`](docs/RESULTS.md) — the results ledger: claims, evidence, retractions, limits
+- [`docs/USAGE.md`](docs/USAGE.md) — every workflow and config switch
+- [`docs/MODEL_CARD.md`](docs/MODEL_CARD.md) — model card with full experimental history
+- [`docs/v4.0-ROADMAP.md`](docs/v4.0-ROADMAP.md) — the red-team findings and 18-block rebuild plan
+- [`CHANGELOG.md`](CHANGELOG.md) — block-by-block ledger
 
 ## License
 
