@@ -55,6 +55,7 @@ def load_world_model(
         d_controllable=dims["d_controllable"],
         action_dim=dims["action_dim"],
         d_immutable=d_immutable,
+        dynamics_head=meta.get("dynamics_head", "residual"),
     )
     decoder = Decoder(
         d_full=dims["d_static"] + dims["d_dynamic"] + dims["d_controllable"],

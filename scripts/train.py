@@ -121,6 +121,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
         d_controllable=d_controllable,
         action_dim=action_dim,
         d_immutable=d_immutable,
+        dynamics_head=mcfg.get("dynamics_head", "residual"),
     ).to(device)
     d_full = d_static + d_dynamic + d_controllable
     decoder = Decoder(d_full=d_full, output_dim=input_dim).to(device)
@@ -417,6 +418,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
                         "objective": objective,
                         "rollout_k": str(rollout_k),
                         "use_belief": str(use_belief).lower(),
+                        "dynamics_head": mcfg.get("dynamics_head", "residual"),
                         "seed": str(seed),
                     }
                 )
