@@ -72,6 +72,12 @@ class EpisodeATLASDataset(Dataset):
             np.load(physics_path).astype(np.float32) if os.path.exists(physics_path) else None
         )
 
+        # v4 B12: optional precomputed causal beliefs (scripts/precompute_belief.py)
+        belief_path = os.path.join(data_dir, f"{split}_belief.npy")
+        self.belief: np.ndarray | None = (
+            np.load(belief_path).astype(np.float32) if os.path.exists(belief_path) else None
+        )
+
         self.valid_indices = self._build_valid_indices()
         print(
             f"EpisodeATLASDataset({split}): {len(self.valid_indices)} valid "
@@ -118,4 +124,6 @@ class EpisodeATLASDataset(Dataset):
         }
         if self.physics is not None:
             item["physics"] = torch.from_numpy(self.physics[i])
+        if self.belief is not None:
+            item["belief_window"] = torch.from_numpy(self.belief[i - k + 1 : i + 1])
         return item

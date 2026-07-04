@@ -345,6 +345,18 @@ such collisions into sparse outliers the median absorbs. Active system
 identification needs *anti-fragility to unobservables*, not just
 information greed.
 
+## Belief conditioning — RMA phase 2 (v4 B12)
+
+`training.use_belief` conditions the world model's `z_static_slow` on
+causal per-row beliefs precomputed by `scripts/precompute_belief.py`
+(GRU `forward_sequence`; z_t sees only frames ≤ t, prefix-property
+tested). Beliefs replace the encoder's slow slice in the start latent AND
+in every rollout target, so the dynamics' slow residual learns to track
+them. A/B on active data, identical seeds: h=1 MSE −5.8% (0.001080 →
+0.001017), h=4 −1.5%. The process-noise random walk dominates the
+long-horizon floor here, capping what known physics can buy — revisit in
+lower-noise environments (B14+).
+
 ## Limitations & ethical considerations
 
 - Trained and evaluated only on a synthetic toy environment; no transfer claims.

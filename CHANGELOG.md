@@ -17,6 +17,20 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   measured the box-containment bug fixed in B1. See the retraction notice in
   `docs/MODEL_CARD.md`; full re-baseline lands with B5.
 
+### Added (v4 B12 — belief conditioning, RMA phase 2)
+
+- **`scripts/precompute_belief.py`** runs the trained belief GRU causally
+  per episode (`PhysicsBeliefEncoder.forward_sequence`, prefix-property
+  tested) and stores per-row beliefs; `training.use_belief` substitutes
+  them for the encoder's `z_static_slow` in both the start latent and the
+  rollout targets — the dynamics' slow residual learns to track the
+  belief. The RMA phase-2 integration the v3.x design promised.
+- A/B on active data (identical seeds): h=1 next-frame MSE 0.001080 →
+  **0.001017 (−5.8%)**; h=4 0.011232 → 0.011059 (−1.5%). Honest caveat:
+  the process-noise random walk dominates long-horizon error on this env,
+  capping what known physics can buy; the conditioning's value should
+  grow in lower-noise / richer settings (B14+).
+
 ### Added (v4 B11 — active exploration for system identification)
 
 - **`InfoSeekingPolicy`** + `generate_data.py --policy active`: rosette-dash

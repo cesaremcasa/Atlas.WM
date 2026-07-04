@@ -140,6 +140,14 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
     grad_clip: float = tcfg["grad_clip_norm"]
     patience: int = tcfg["early_stopping_patience"]
     num_epochs: int = tcfg["num_epochs"]
+    # v4 B12: condition z_static_slow on precomputed causal physics
+    # beliefs (scripts/precompute_belief.py). The single-frame encoder
+    # provably cannot identify episode physics; the belief GRU can
+    # (R^2 0.34-0.67). Substituted in both the start latent and the
+    # rollout targets, so the dynamics' slow residual learns to track the
+    # belief — the RMA phase-2 integration.
+    use_belief: bool = tcfg.get("use_belief", False)
+
     # v4 B9: immutable-anchor weights (replace the retired adversarial
     # critic). Default 0.0: on CruelGridworld a single stacked input carries
     # no observable episode identity (walls invisible, physics needs temporal
@@ -210,6 +218,21 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
                     z_targets = z_all["z_full"].detach().reshape(bsz, n_pos, -1)
 
             z_0 = {k: v.reshape(bsz, n_pos, -1)[:, 0] for k, v in z_all.items()}
+
+            if use_belief:
+                if "belief_window" not in batch:
+                    raise RuntimeError(
+                        "training.use_belief=true requires {split}_belief.npy — "
+                        "run scripts/precompute_belief.py first"
+                    )
+                bel = batch["belief_window"].to(device)[:, 1:]  # align with inputs
+                slow = slice(d_immutable, d_static)
+                z_targets[:, :, slow] = bel
+                z_0["z_static_slow"] = bel[:, 0]
+                z_0["z_static"] = torch.cat([z_0["z_static_immutable"], bel[:, 0]], dim=-1)
+                z_0["z_full"] = torch.cat(
+                    [z_0["z_static"], z_0["z_dynamic"], z_0["z_controllable"]], dim=-1
+                )
 
             # v4 B8: K-step self-fed rollout — each predicted latent feeds the
             # next step, with per-step latent supervision and prediction
@@ -310,6 +333,17 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
                     bsz, n_pos, -1
                 )
                 z_cur = encoder(inputs[:, 0])
+                if use_belief:
+                    bel = batch["belief_window"].to(device)[:, 1:]
+                    slow = slice(d_immutable, d_static)
+                    z_targets[:, :, slow] = bel
+                    z_cur = dict(z_cur)
+                    z_cur["z_static_slow"] = bel[:, 0]
+                    z_cur["z_static"] = torch.cat([z_cur["z_static_immutable"], bel[:, 0]], dim=-1)
+                    z_cur["z_full"] = torch.cat(
+                        [z_cur["z_static"], z_cur["z_dynamic"], z_cur["z_controllable"]],
+                        dim=-1,
+                    )
                 val_recon_loss += nn.functional.mse_loss(
                     decoder(z_cur["z_full"]), inputs[:, 0]
                 ).item()
@@ -382,6 +416,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
                         "frame_stack": str(frame_stack),
                         "objective": objective,
                         "rollout_k": str(rollout_k),
+                        "use_belief": str(use_belief).lower(),
                         "seed": str(seed),
                     }
                 )

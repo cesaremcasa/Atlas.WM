@@ -46,6 +46,16 @@ class PhysicsBeliefEncoder(nn.Module):
         out: torch.Tensor = self.proj(h_n.squeeze(0))
         return out  # [B, d_slow]
 
+    def forward_sequence(self, obs_window: torch.Tensor) -> torch.Tensor:
+        """Causal per-step beliefs: z_t uses only inputs up to t (v4 B12).
+
+        Returns [B, K, d_slow] — the GRU hidden state projected at every
+        step, so downstream conditioning never sees the future.
+        """
+        h_all, _ = self.gru(obs_window)  # [B, K, hidden]
+        out: torch.Tensor = self.proj(h_all)
+        return out
+
 
 class PhysicsHead(nn.Module):
     """Supervised head: z_static_slow[B, d_slow] -> physics_hat[B, n_physics].
