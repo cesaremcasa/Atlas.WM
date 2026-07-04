@@ -17,6 +17,20 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   measured the box-containment bug fixed in B1. See the retraction notice in
   `docs/MODEL_CARD.md`; full re-baseline lands with B5.
 
+### Added (v4 B14 — MuJoCo environment tier)
+
+- **`MujocoPointMass`** (`--env mujoco`): actuated ball + two passive boxes,
+  real MuJoCo contact/friction, per-episode randomized friction/mass/gravity
+  in `info`, same interface contract as CruelGridworld (8 discrete force
+  directions, 6-D obs, seeded) — the whole v4 pipeline runs unchanged.
+- **Per-dataset observation scale** (`obs_scale.json` written by
+  generate_data, copied by split_data, resolved by the datasets): MuJoCo
+  observations live in [−1.2, 1.2], not [0, 20].
+- First MuJoCo baseline (VICReg + grounding + rollout K=4): h=1 MSE
+  0.001089 vs linear ceiling 0.000465 — a **2.3× gap vs 3.6× on the
+  gridworld**, consistent with the process-noise analysis; AD-2 passthrough
+  drift exactly 0.0 over 8-step rollouts.
+
 ### Added (v4 B13 — dissipative symplectic dynamics head)
 
 - **`model.dynamics_head: hamiltonian`**: z_dynamic splits into (q, p);

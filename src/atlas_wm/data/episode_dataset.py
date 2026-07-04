@@ -15,7 +15,11 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset
 
-from atlas_wm.data.dataset import DEFAULT_OBS_SCALE, reject_legacy_normalized
+from atlas_wm.data.dataset import (
+    DEFAULT_OBS_SCALE,
+    reject_legacy_normalized,
+    resolve_obs_scale,
+)
 
 
 class EpisodeATLASDataset(Dataset):
@@ -44,6 +48,7 @@ class EpisodeATLASDataset(Dataset):
             raise ValueError(f"split must be 'train', 'val', or 'test', got {split!r}")
 
         reject_legacy_normalized(data_dir)
+        obs_scale = resolve_obs_scale(data_dir, obs_scale)
 
         self.window_k = window_k
 

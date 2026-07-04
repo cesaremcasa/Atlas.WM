@@ -17,6 +17,12 @@ import numpy as np
 from atlas_wm.environments.cruel_gridworld import CruelGridworld
 
 PHYSICS_KEYS = ("gravity", "friction_agent", "friction_box")
+# v4 B14: per-env physics labels and observation scales. The scale is written
+# to {out_dir}/obs_scale.json so the datasets normalize correctly per dataset.
+ENVS = {
+    "cruel": {"keys": PHYSICS_KEYS, "obs_scale": 20.0},
+    "mujoco": {"keys": ("gravity", "friction", "mass"), "obs_scale": 1.2},
+}
 
 
 def generate_with_exploration(
@@ -27,6 +33,7 @@ def generate_with_exploration(
     out_dir: str = "data/raw",
     episode_reset_prob: float = 0.1,
     policy: str = "random",
+    env_name: str = "cruel",
 ) -> bool:
     """Generate (obs, action, next_obs) transitions via random exploration.
 
@@ -44,7 +51,17 @@ def generate_with_exploration(
     Returns:
         True on success.
     """
-    env = CruelGridworld(randomize_physics=randomize_physics, process_noise_std=process_noise_std)
+    if env_name == "mujoco":
+        from atlas_wm.environments.mujoco_pointmass import MujocoPointMass
+
+        env = MujocoPointMass(randomize_physics=randomize_physics)
+        if policy == "active":
+            raise ValueError("--policy active is gridworld-specific (B11); use random for mujoco")
+    else:
+        env = CruelGridworld(
+            randomize_physics=randomize_physics, process_noise_std=process_noise_std
+        )
+    physics_keys = ENVS[env_name]["keys"]
 
     # Seeded RNG makes the variable-physics dataset reproducible (AD-7). When no
     # seed is given we fall back to the original global-RNG code path so the
@@ -105,7 +122,7 @@ def generate_with_exploration(
         all_obs.append(obs.copy())
         all_actions.append(action_onehot)
         all_next_obs.append(next_obs.copy())
-        all_physics.append([info[k] for k in PHYSICS_KEYS])
+        all_physics.append([info[k] for k in physics_keys])
         all_episode_ids.append(episode)
 
         obs = next_obs
@@ -127,7 +144,7 @@ def generate_with_exploration(
     print(f"\nFinal: {len(obs_array)} samples, {unique} unique ({diversity:.1f}%)")
     print(f"Episodes: {n_episodes} (avg length {avg_ep_len:.1f} steps)")
     if randomize_physics:
-        for j, key in enumerate(PHYSICS_KEYS):
+        for j, key in enumerate(physics_keys):
             col = physics_array[:, j]
             print(f"  {key}: [{col.min():.3f}, {col.max():.3f}] (variable)")
 
@@ -137,6 +154,11 @@ def generate_with_exploration(
     np.save(os.path.join(out_dir, "next_observations.npy"), next_obs_array)
     np.save(os.path.join(out_dir, "physics_params.npy"), physics_array)
     np.save(os.path.join(out_dir, "episode_ids.npy"), episode_ids_array)
+
+    import json
+
+    with open(os.path.join(out_dir, "obs_scale.json"), "w") as f:
+        json.dump({"obs_scale": ENVS[env_name]["obs_scale"], "env": env_name}, f)
 
     return True
 
@@ -163,6 +185,12 @@ def main() -> None:
     )
     parser.add_argument("--out-dir", default="data/raw")
     parser.add_argument(
+        "--env",
+        default="cruel",
+        choices=["cruel", "mujoco"],
+        help="environment: cruel (gridworld) or mujoco (point-mass, v4 B14)",
+    )
+    parser.add_argument(
         "--policy",
         default="random",
         choices=["random", "active"],
@@ -179,6 +207,7 @@ def main() -> None:
 
     generate_with_exploration(
         policy=args.policy,
+        env_name=args.env,
         num_samples=args.num_samples,
         randomize_physics=args.randomize_physics,
         process_noise_std=args.process_noise_std,
