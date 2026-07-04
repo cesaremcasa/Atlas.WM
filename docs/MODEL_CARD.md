@@ -312,6 +312,39 @@ information rate (more valid steps: excited, boxes distant, no bounces),
 which shortens the window needed for a given belief quality — measure
 valid-steps/window under active vs random policies alongside R².
 
+## Active exploration for system identification (v4 B11)
+
+`InfoSeekingPolicy` (`atlas_wm/data/exploration.py`) collects data by
+greedily maximizing the B10 information-rate proxies (ASID-style, with the
+Fisher objective replaced by the measured proxies): a MEASURE phase runs an
+oscillating **rosette dash** in open space (speed ≈ 2 → per-step ratio
+error halves; golden-angle axis rotation), alternating with a STIR phase
+that drives the nearest box through the gravity band. Available via
+`generate_data.py --policy active`.
+
+**Identical belief model + training, only the data collection changes**
+(supervised val R², window 40):
+
+| Parameter | random data | active data |
+|---|---|---|
+| gravity | 0.43 | **0.67** |
+| friction_agent | 0.22 | **0.29** |
+| friction_box | 0.09 | 0.07 |
+| mean | 0.246 | **0.341 (+39%)** |
+
+Episode-level closed-form estimator: active R² 0.956 / MAE 0.0036 vs
+random 0.914 / 0.0054.
+
+A finding worth publishing on its own: the first policy version dashed
+along a **fixed line**, and when that line crossed an unobservable
+obstacle the agent hit it repeatedly — corrupting the ratio median of the
+whole episode (episode-level R² collapsed to 0.23 with near-unchanged MAE:
+a heavy-tail signature). Random walks don't repeat their own mistakes;
+deterministic information-seeking policies do. The rosette rotation turns
+such collisions into sparse outliers the median absorbs. Active system
+identification needs *anti-fragility to unobservables*, not just
+information greed.
+
 ## Limitations & ethical considerations
 
 - Trained and evaluated only on a synthetic toy environment; no transfer claims.

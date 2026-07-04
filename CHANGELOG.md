@@ -17,6 +17,20 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   measured the box-containment bug fixed in B1. See the retraction notice in
   `docs/MODEL_CARD.md`; full re-baseline lands with B5.
 
+### Added (v4 B11 — active exploration for system identification)
+
+- **`InfoSeekingPolicy`** + `generate_data.py --policy active`: rosette-dash
+  MEASURE phase (2× per-step ratio precision) alternating with box-STIR
+  (gravity signal). Same belief model/training, active vs random data:
+  mean val R² **0.246 → 0.341 (+39%)**; gravity 0.43 → **0.67**;
+  friction_agent 0.22 → 0.29. Episode-level estimator: R² 0.956 / MAE
+  0.0036 (active) vs 0.914 / 0.0054 (random).
+- Key negative finding documented: a fixed-line dash repeatedly struck
+  unobservable obstacles and poisoned episode medians (heavy-tail R²
+  collapse) — deterministic info-seeking needs anti-fragility to
+  unobservables; the golden-angle rosette provides it. Regression test
+  locks the information advantage (mean estimator error < 75% of random).
+
 ### Added (v4 B10 — belief encoder v2)
 
 - **Engineered dynamics features** (`atlas_wm.data.dynamics_features`, 27
