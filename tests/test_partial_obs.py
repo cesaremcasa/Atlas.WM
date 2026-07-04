@@ -4,7 +4,6 @@ import pytest
 import torch
 
 from atlas_wm.data.partial_obs import PartialObsWrapper, nearest_k_obs
-from atlas_wm.models.entity_encoder import EntityEncoder
 
 BATCH = 4
 N_OBJ = 5
@@ -86,14 +85,3 @@ class TestPartialObsWrapper:
         x = _make_x()
         out = wrap(x)
         assert torch.equal(out[:, 0, :], x[:, 0, :])
-
-    def test_wrapper_with_entity_encoder(self):
-        """Partial obs → EntityEncoder must produce correct output shapes."""
-        wrap = PartialObsWrapper(k=3)
-        enc = EntityEncoder(entity_dim=ENTITY_DIM, d_static=16, d_dynamic=32, d_controllable=16)
-        enc.eval()
-        x = _make_x(batch=BATCH, n_obj=8)
-        x_partial = wrap(x)
-        with torch.no_grad():
-            out = enc(x_partial)
-        assert out["z_full"].shape == (BATCH, 16 + 32 + 16)

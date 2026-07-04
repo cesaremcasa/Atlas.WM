@@ -19,7 +19,6 @@ components with **architectural** (not merely learned) guarantees.
 | `ContinuousEncoder` | `obs[B,6] → z_full[B,64]` | Encodes observations into the structured latent |
 | `StructuredDynamics` | `(z, action[B,8]) → z'` | One-step latent transition |
 | `ActionInvarianceCritic` | `z_static_immutable → action` | Adversary enforcing identifiability (AD-3) |
-| `EntityEncoder` | `entities → z` | Permutation-equivariant variant for variable object counts |
 | `PhysicsBeliefEncoder` | `obs_window[B,K,6] → z_static_slow[B,8]` | GRU over K consecutive obs → physics belief (Block 14) |
 | `PhysicsHead` | `z_static_slow[B,8] → physics_hat[B,n]` | Supervised head; predicts the recoverable physics subset `{gravity, friction_box}` (Block 14) |
 
