@@ -26,6 +26,7 @@ def generate_with_exploration(
     seed: int | None = None,
     out_dir: str = "data/raw",
     episode_reset_prob: float = 0.1,
+    policy: str = "random",
 ) -> bool:
     """Generate (obs, action, next_obs) transitions via random exploration.
 
@@ -51,6 +52,19 @@ def generate_with_exploration(
     rng = np.random.default_rng(seed) if seed is not None else None
     episode = 0
 
+    # v4 B11: information-seeking exploration. Random actions rarely produce
+    # informative steps (excited, boxes distant, no bounce); the info-seeking
+    # policy greedily maximizes those measured proxies.
+    active_policy = None
+    if policy == "active":
+        if rng is None:
+            raise ValueError("--policy active requires --seed for reproducibility")
+        from atlas_wm.data.exploration import InfoSeekingPolicy
+
+        active_policy = InfoSeekingPolicy(rng=np.random.default_rng(seed + 10_000_000))
+    elif policy != "random":
+        raise ValueError(f"policy must be random|active, got {policy!r}")
+
     def reset_env() -> dict:
         nonlocal episode
         episode += 1
@@ -74,8 +88,12 @@ def generate_with_exploration(
         if reset_draw < episode_reset_prob:
             info = reset_env()
             obs = env._get_obs()
+            if active_policy is not None:
+                active_policy.reset()
 
-        if rng is not None:
+        if active_policy is not None:
+            action_idx = active_policy.act(obs)
+        elif rng is not None:
             action_idx = int(rng.integers(0, env.action_space.n))
         else:
             action_idx = np.random.randint(0, env.action_space.n)
@@ -145,6 +163,12 @@ def main() -> None:
     )
     parser.add_argument("--out-dir", default="data/raw")
     parser.add_argument(
+        "--policy",
+        default="random",
+        choices=["random", "active"],
+        help="random exploration or the v4 B11 information-seeking policy",
+    )
+    parser.add_argument(
         "--episode-reset-prob",
         type=float,
         default=0.1,
@@ -154,6 +178,7 @@ def main() -> None:
     args = parser.parse_args()
 
     generate_with_exploration(
+        policy=args.policy,
         num_samples=args.num_samples,
         randomize_physics=args.randomize_physics,
         process_noise_std=args.process_noise_std,
