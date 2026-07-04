@@ -17,6 +17,20 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   measured the box-containment bug fixed in B1. See the retraction notice in
   `docs/MODEL_CARD.md`; full re-baseline lands with B5.
 
+### Added (v4 B8 — multi-step rollout training + real evaluation)
+
+- **`training.rollout_k`** (default 4): K-step self-fed rollout training —
+  predicted latents feed the next dynamics step with per-step latent
+  supervision + grounding; windows come from `EpisodeATLASDataset`.
+  Validation tracks h=1 and h=K separately.
+- **`scripts/evaluate.py` is now a real evaluator** (finding M5): open-loop
+  obs-space MSE by horizon and the AD-2 immutable-passthrough drift check
+  (measured: exactly 0.0 over 10-step rollouts).
+- Result: the classic horizon trade-off — one-step model wins at h=1
+  (0.000993 vs 0.001157), rollout-trained wins from h≥3 (h=10: 0.0357 vs
+  0.0389). Process noise sets an irreducible random-walk floor at long
+  horizons.
+
 ### Added (v4 B7 — stable objective + prediction grounding)
 
 - **`training.objective`**: `vicreg` (default; variance hinge + covariance

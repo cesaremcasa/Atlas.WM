@@ -20,7 +20,8 @@ import yaml
 from torch.utils.data import DataLoader
 
 from atlas_wm.checkpointing.io import make_metadata, save_checkpoint
-from atlas_wm.data.dataset import ATLASDataset
+from atlas_wm.data.dataset import stack_window
+from atlas_wm.data.episode_dataset import EpisodeATLASDataset
 from atlas_wm.models.continuous_encoder import ContinuousEncoder
 from atlas_wm.models.decoder import Decoder
 from atlas_wm.models.identifiability import (
@@ -85,8 +86,15 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
     # prediction ill-posed (velocity unobservable, finding M2); 2 stacked
     # frames make it observable. The encoder consumes input_dim * frame_stack.
     frame_stack: int = mcfg.get("frame_stack", 1)
-    train_dataset = ATLASDataset(data_dir, split="train", frame_stack=frame_stack)
-    val_dataset = ATLASDataset(data_dir, split="val", frame_stack=frame_stack)
+
+    # v4 B8: K-step self-fed rollout training. One-step teacher forcing never
+    # trains against compounding error — the open-loop regime a world model
+    # is actually used in. Windows carry rollout_k + 2 frames: one leading
+    # frame for stacking, then rollout_k transitions supervised per step.
+    rollout_k: int = tcfg.get("rollout_k", 1)
+    window_w = rollout_k + 2
+    train_dataset = EpisodeATLASDataset(data_dir, split="train", window_k=window_w)
+    val_dataset = EpisodeATLASDataset(data_dir, split="val", window_k=window_w)
 
     batch_size: int = tcfg["batch_size"]
     train_loader = DataLoader(
@@ -175,6 +183,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
         "val_pred": [],
         "val_recon": [],
         "val_next_mse": [],
+        "val_rollout_mse": [],
     }
 
     for epoch in range(num_epochs):
@@ -185,36 +194,51 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
         train_loss = 0.0
 
         for batch in train_loader:
-            obs = batch["obs"].to(device)
-            action = batch["action"].to(device)
-            next_obs = batch["next_obs"].to(device)
+            obs_w = batch["obs_window"].to(device)  # [B, W, obs_dim]
+            act_w = batch["action_window"].to(device)  # [B, W, action_dim]
+            inputs = stack_window(obs_w, frame_stack)  # [B, W-1, input_dim]
+            bsz, n_pos, _ = inputs.shape  # n_pos = rollout_k + 1
 
-            z_t = encoder(obs)
-            z_t1_pred = dynamics(z_t, action)
-
+            # Encode all target positions in one pass (detached / EMA).
             with torch.no_grad():
-                if objective == "ema":
-                    z_t1_true = target_encoder(next_obs)
-                else:
-                    z_t1_true = encoder(next_obs)
+                tgt_enc = target_encoder if objective == "ema" else encoder
+                z_targets = tgt_enc(inputs.reshape(bsz * n_pos, -1))["z_full"].reshape(
+                    bsz, n_pos, -1
+                )
 
-            c_loss = critic_loss(critic, z_t["z_static_immutable"].detach(), action)
+            z_0 = encoder(inputs[:, 0])
+            first_action = act_w[:, 1]
+
+            c_loss = critic_loss(critic, z_0["z_static_immutable"].detach(), first_action)
             critic_optimizer.zero_grad()
             c_loss.backward()
             torch.nn.utils.clip_grad_norm_(critic.parameters(), grad_clip)
             critic_optimizer.step()
 
-            recon_loss = nn.functional.mse_loss(decoder(z_t["z_full"]), obs)
-            pred_loss = nn.functional.mse_loss(z_t1_pred["z_full"], z_t1_true["z_full"])
-            # Prediction grounding (v4 B7): decode the PREDICTED latent and
-            # match the actual next observation. Without this term nothing in
-            # training optimizes the decoder∘dynamics path that inference
-            # uses — latent-matching plus current-frame reconstruction leave
-            # a composition misalignment the model never sees (measured: the
-            # 2-frame model sat 6× above its linear ceiling).
-            next_recon_loss = nn.functional.mse_loss(decoder(z_t1_pred["z_full"]), next_obs)
-            drift_penalty = z_t1_pred["delta_slow"].norm(dim=-1).mean()
-            adv_loss = encoder_adversarial_loss(critic, z_t["z_static_immutable"], action)
+            # v4 B8: K-step self-fed rollout — each predicted latent feeds the
+            # next step, with per-step latent supervision and prediction
+            # grounding (v4 B7). One-step teacher forcing never exposed the
+            # model to its own compounding error.
+            pred_loss = torch.zeros((), device=device)
+            next_recon_loss = torch.zeros((), device=device)
+            drift_penalty = torch.zeros((), device=device)
+            z_cur = z_0
+            for s in range(rollout_k):
+                z_next = dynamics(z_cur, act_w[:, s + 1])
+                pred_loss = pred_loss + nn.functional.mse_loss(
+                    z_next["z_full"], z_targets[:, s + 1]
+                )
+                next_recon_loss = next_recon_loss + nn.functional.mse_loss(
+                    decoder(z_next["z_full"]), inputs[:, s + 1]
+                )
+                drift_penalty = drift_penalty + z_next["delta_slow"].norm(dim=-1).mean()
+                z_cur = z_next
+            pred_loss = pred_loss / rollout_k
+            next_recon_loss = next_recon_loss / rollout_k
+            drift_penalty = drift_penalty / rollout_k
+
+            recon_loss = nn.functional.mse_loss(decoder(z_0["z_full"]), inputs[:, 0])
+            adv_loss = encoder_adversarial_loss(critic, z_0["z_static_immutable"], first_action)
             effective_lam_adv = lam_adv if epoch >= adv_warmup else 0.0
             loss = (
                 lam_recon * recon_loss
@@ -227,14 +251,14 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
                 # Anti-collapse + anti-redundancy on the ENCODER output — the
                 # tensor that can actually collapse (the v3.x hinge sat on the
                 # dynamics output and fought the L2 anchor).
-                var_loss, cov_loss = vicreg_regularizer(z_t["z_full"])
+                var_loss, cov_loss = vicreg_regularizer(z_0["z_full"])
                 loss = loss + lam_var * var_loss + lam_cov * cov_loss
             elif objective == "legacy":
-                z_var = z_t1_pred["z_full"].var(dim=0).mean()
+                z_var = z_cur["z_full"].var(dim=0).mean()
                 loss = (
                     loss
                     + lam_var * torch.clamp(1.0 - z_var, min=0)
-                    + lam_latent_l2 * z_t["z_full"].pow(2).mean()
+                    + lam_latent_l2 * z_0["z_full"].pow(2).mean()
                 )
 
             if torch.isnan(loss):
@@ -261,42 +285,56 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
         val_pred_loss = 0.0
         val_recon_loss = 0.0
         val_next_mse = 0.0
+        val_rollout_mse = 0.0
         base_dim: int = mcfg["input_dim"]
 
         with torch.no_grad():
             for batch in val_loader:
-                obs = batch["obs"].to(device)
-                action = batch["action"].to(device)
-                next_obs = batch["next_obs"].to(device)
-                z_t = encoder(obs)
-                z_t1_pred = dynamics(z_t, action)
-                z_t1_true = encoder(next_obs)
-                val_pred_loss += nn.functional.mse_loss(
-                    z_t1_pred["z_full"], z_t1_true["z_full"]
+                obs_w = batch["obs_window"].to(device)
+                act_w = batch["action_window"].to(device)
+                inputs = stack_window(obs_w, frame_stack)
+                bsz, n_pos, _ = inputs.shape
+                z_targets = encoder(inputs.reshape(bsz * n_pos, -1))["z_full"].reshape(
+                    bsz, n_pos, -1
+                )
+                z_cur = encoder(inputs[:, 0])
+                val_recon_loss += nn.functional.mse_loss(
+                    decoder(z_cur["z_full"]), inputs[:, 0]
                 ).item()
-                val_recon_loss += nn.functional.mse_loss(decoder(z_t["z_full"]), obs).item()
-                # Observation-space next-frame error (last base_dim dims are
-                # the actual next frame under stacking). Objective-agnostic —
-                # latent pred losses are not comparable across objectives, so
-                # checkpoint selection uses THIS metric (v4 B7).
-                val_next_mse += nn.functional.mse_loss(
-                    decoder(z_t1_pred["z_full"])[:, -base_dim:], next_obs[:, -base_dim:]
-                ).item()
+                for s in range(rollout_k):
+                    z_cur = dynamics(z_cur, act_w[:, s + 1])
+                    # Observation-space next-frame error (last base_dim dims
+                    # are the actual frame). Objective-agnostic — used for
+                    # checkpoint selection (v4 B7); horizon 1 and horizon K
+                    # are tracked separately (v4 B8).
+                    step_mse = nn.functional.mse_loss(
+                        decoder(z_cur["z_full"])[:, -base_dim:],
+                        inputs[:, s + 1][:, -base_dim:],
+                    ).item()
+                    if s == 0:
+                        val_next_mse += step_mse
+                        val_pred_loss += nn.functional.mse_loss(
+                            z_cur["z_full"], z_targets[:, 1]
+                        ).item()
+                    if s == rollout_k - 1:
+                        val_rollout_mse += step_mse
 
         val_pred_loss /= max(len(val_loader), 1)
         val_recon_loss /= max(len(val_loader), 1)
         val_next_mse /= max(len(val_loader), 1)
+        val_rollout_mse /= max(len(val_loader), 1)
         val_loss = val_next_mse + lam_recon * val_recon_loss
         history["train"].append(train_loss)
         history["val_pred"].append(val_pred_loss)
         history["val_recon"].append(val_recon_loss)
         history["val_next_mse"].append(val_next_mse)
+        history["val_rollout_mse"].append(val_rollout_mse)
         scheduler.step(val_loss)
         current_lr = optimizer.param_groups[0]["lr"]
 
         print(
             f"Epoch {epoch + 1:3d} | Train: {train_loss:.6f} | "
-            f"Val next-frame: {val_next_mse:.6f} pred: {val_pred_loss:.6f} "
+            f"Val h=1: {val_next_mse:.6f} h={rollout_k}: {val_rollout_mse:.6f} "
             f"recon: {val_recon_loss:.6f} | LR: {current_lr:.2e}"
         )
 
@@ -333,6 +371,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
                         "d_controllable": str(d_controllable),
                         "frame_stack": str(frame_stack),
                         "objective": objective,
+                        "rollout_k": str(rollout_k),
                         "seed": str(seed),
                     }
                 )

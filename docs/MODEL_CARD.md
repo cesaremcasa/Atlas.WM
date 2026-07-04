@@ -211,6 +211,35 @@ Checkpoint selection and early stopping now use the objective-agnostic
 observation-space next-frame MSE (latent losses are not comparable across
 objectives).
 
+## Multi-step rollout training (v4 B8)
+
+Training now runs K-step self-fed rollouts (`rollout_k: 4` default): each
+predicted latent feeds the next dynamics step, with per-step latent
+supervision and prediction grounding. One-step teacher forcing never
+exposed the model to its own compounding error — the open-loop regime a
+world model is actually used in. `scripts/evaluate.py` is now a real
+evaluator: open-loop obs-space MSE by horizon plus the AD-2 passthrough
+check.
+
+Open-loop rollout on the noisy re-baseline val split (VICReg, 2 frames):
+
+| Horizon | one-step trained (K=1) | rollout-trained (K=4) |
+|---|---|---|
+| 1 | **0.000993** | 0.001157 |
+| 4 | 0.010577 | **0.010267** |
+| 10 | 0.038915 | **0.035682** |
+
+The classic trade-off, mildly: one-step wins at h=1 (16%), rollout
+training wins from h≥3 (8% at h=10). Gains are modest — note that the
+per-step process noise (σ = 0.05) is irreducible and accumulates like a
+random walk over horizons, so part of the long-horizon error floor cannot
+be modeled away by any deterministic predictor.
+
+**AD-2 verified in the open loop**: `z_static_immutable` max drift over a
+10-step self-fed rollout is exactly 0.0 for both models — the passthrough
+guarantee now has an end-to-end measurement, not just a single-step
+tautology test.
+
 ## Limitations & ethical considerations
 
 - Trained and evaluated only on a synthetic toy environment; no transfer claims.
