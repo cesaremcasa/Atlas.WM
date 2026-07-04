@@ -30,6 +30,7 @@ def _make_config(tmp_path, d_immutable=8, d_slow=8, seed=42):
         np.save(data_dir / f"{split}_obs.npy", obs)
         np.save(data_dir / f"{split}_actions.npy", actions)
         np.save(data_dir / f"{split}_next_obs.npy", obs + 0.05)
+        np.save(data_dir / f"{split}_episode_ids.npy", np.repeat(np.arange(4), n // 4))
 
     cfg = {
         "model": {

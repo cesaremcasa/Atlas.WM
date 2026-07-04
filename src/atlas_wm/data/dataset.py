@@ -107,3 +107,21 @@ class ATLASDataset(Dataset):
             "action": torch.from_numpy(self.actions[idx]),
             "next_obs": torch.from_numpy(self.next_observations[idx]),
         }
+
+
+def stack_window(obs_w, frame_stack: int):
+    """Build encoder inputs for window positions 1..W-1 (v4 B6/B8).
+
+    Args:
+        obs_w: [B, W, obs_dim] same-episode observation window (torch.Tensor).
+        frame_stack: 1 (raw frames) or 2 (concat previous frame).
+
+    Returns:
+        [B, W-1, obs_dim * frame_stack]; index s is the input at position
+        s+1 (position 0 exists only to provide the first stacked frame).
+    """
+    import torch
+
+    if frame_stack == 2:
+        return torch.cat([obs_w[:, :-1], obs_w[:, 1:]], dim=-1)
+    return obs_w[:, 1:]

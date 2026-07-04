@@ -52,6 +52,7 @@ training:
   lambda_var: 1.0              # vicreg only: per-dim std hinge weight
   lambda_cov: 0.05             # vicreg only: off-diagonal covariance weight
   lambda_next_recon: 1.0       # prediction grounding: decode(dynamics(z)) vs next_obs
+  rollout_k: 4                 # v4 B8: K-step self-fed rollout training (1 = one-step)
   lambda_physics: 0.0          # supervised physics aux loss; 0 = disabled (no labels)
   adv_warmup_epochs: 5          # epochs before adversarial loss is applied
   critic_lr_factor: 1.0         # critic LR = learning_rate * critic_lr_factor
