@@ -112,6 +112,16 @@ def train_belief_encoder(args: argparse.Namespace) -> None:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device} | Seed: {seed}")
 
+    # v4.1: env-aware features and targets (obs_scale.json carries the env)
+    import json as _json
+    import os as _os
+
+    env_name = "cruel"
+    scale_meta = _os.path.join(data_dir, "obs_scale.json")
+    if _os.path.exists(scale_meta):
+        with open(scale_meta) as _f:
+            env_name = _json.load(_f).get("env", "cruel")
+
     window_k: int = args.window_k or cfg.get("belief_encoder", {}).get("window_k", 10)
     obs_dim: int = mcfg["input_dim"]
     action_dim: int = cfg["environment"]["action_space_size"]
@@ -119,9 +129,25 @@ def train_belief_encoder(args: argparse.Namespace) -> None:
     # oracle's per-step decay ratios, gravity projections, distances), not raw
     # obs sequences — the re-baseline showed raw windows score negative R^2 on
     # physics a linear estimator recovers at 0.87 from the same data.
-    gru_input_dim: int = N_FEATURES
+    if env_name == "mujoco":
+        from atlas_wm.data.mujoco_features import N_MJ_FEATURES, build_mujoco_features
+
+        feature_fn = build_mujoco_features
+        gru_input_dim = N_MJ_FEATURES
+        # Gravity alone is structurally unidentifiable here (only mu*g enters
+        # box dynamics) — measured in v4.1 part 1.
+        physics_keys = ["friction", "mass"]
+        all_keys = ["gravity", "friction", "mass"]
+        features_tag = "mujoco_v1"
+    else:
+        feature_fn = build_dynamics_features
+        gru_input_dim = N_FEATURES
+        physics_keys = list(PHYSICS_KEYS)
+        all_keys = list(ALL_PHYSICS_KEYS)
+        features_tag = "dynamics_v1"
+    target_idx_list = [all_keys.index(k) for k in physics_keys]
     d_slow: int = mcfg["d_static_slow"]
-    n_physics = len(PHYSICS_KEYS)
+    n_physics = len(physics_keys)
     lam_contrastive: float = cfg.get("belief_encoder", {}).get("lambda_contrastive", 0.1)
 
     try:
@@ -143,14 +169,14 @@ def train_belief_encoder(args: argparse.Namespace) -> None:
 
     # Compute physics normalization statistics from training data (standardize to μ=0, σ=1).
     # Select only the recoverable target columns (TARGET_IDX) from the full 3-column array.
-    physics_train = train_ds.physics[train_ds.valid_indices][:, TARGET_IDX]  # [N_valid, n_targets]
+    physics_train = train_ds.physics[train_ds.valid_indices][:, target_idx_list]
     physics_mean = physics_train.mean(axis=0)
     physics_std = physics_train.std(axis=0) + 1e-8
     print(f"Physics mean: {physics_mean}, std: {physics_std}")
 
     phys_mean_t = torch.tensor(physics_mean, dtype=torch.float32, device=device)
     phys_std_t = torch.tensor(physics_std, dtype=torch.float32, device=device)
-    target_idx_t = torch.tensor(TARGET_IDX, dtype=torch.long, device=device)
+    target_idx_t = torch.tensor(target_idx_list, dtype=torch.long, device=device)
 
     batch_size: int = tcfg.get("batch_size", 256)
     lr: float = args.lr or tcfg["learning_rate"]
@@ -188,7 +214,7 @@ def train_belief_encoder(args: argparse.Namespace) -> None:
         f"gru_input={gru_input_dim}D (engineered dynamics features), "
         f"distributional head, lambda_contrastive={lam_contrastive}"
     )
-    print(f"Predicting: {PHYSICS_KEYS}")
+    print(f"Predicting: {physics_keys} (env={env_name})")
 
     for epoch in range(num_epochs):
         belief_enc.train()
@@ -203,7 +229,7 @@ def train_belief_encoder(args: argparse.Namespace) -> None:
             # Normalize physics targets
             physics_norm = (physics_gt - phys_mean_t) / phys_std_t
 
-            feats = build_dynamics_features(obs_window, action_window)  # [B, K-2, F]
+            feats = feature_fn(obs_window, action_window)  # [B, K-2, F]
 
             z_slow = belief_enc(feats)
             mu, logvar = physics_head(z_slow)
@@ -235,7 +261,7 @@ def train_belief_encoder(args: argparse.Namespace) -> None:
                 obs_window = batch["obs_window"].to(device)
                 action_window = batch["action_window"].to(device)
                 physics_gt = batch["physics"].to(device)[:, target_idx_t]
-                feats = build_dynamics_features(obs_window, action_window)
+                feats = feature_fn(obs_window, action_window)
                 z_slow = belief_enc(feats)
                 mu, _logvar = physics_head(z_slow)
                 # Unnormalize for R² computation
@@ -252,7 +278,7 @@ def train_belief_encoder(args: argparse.Namespace) -> None:
         scheduler.step(-r2_mean)
         lr_now = optimizer.param_groups[0]["lr"]
 
-        r2_str = " ".join(f"{k}={r2_per[j]:.3f}" for j, k in enumerate(PHYSICS_KEYS))
+        r2_str = " ".join(f"{k}={r2_per[j]:.3f}" for j, k in enumerate(physics_keys))
         print(
             f"Epoch {epoch + 1:3d} | train_loss: {train_loss:.6f} | "
             f"val R² {r2_str} mean={r2_mean:.3f} | LR: {lr_now:.2e}"
@@ -279,10 +305,10 @@ def train_belief_encoder(args: argparse.Namespace) -> None:
             meta["action_dim"] = str(action_dim)
             meta["d_slow"] = str(d_slow)
             meta["window_k"] = str(window_k)
-            meta["features"] = "dynamics_v1"
+            meta["features"] = features_tag
             meta["n_features"] = str(N_FEATURES)
             meta["head"] = "distributional"
-            meta["physics_keys"] = json.dumps(PHYSICS_KEYS)
+            meta["physics_keys"] = json.dumps(physics_keys)
             meta["physics_mean"] = json.dumps(physics_mean.tolist())
             meta["physics_std"] = json.dumps(physics_std.tolist())
             save_checkpoint(combined, checkpoint_path, meta)

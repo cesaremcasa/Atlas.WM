@@ -54,9 +54,9 @@ def generate_with_exploration(
     if env_name == "mujoco":
         from atlas_wm.environments.mujoco_pointmass import MujocoPointMass
 
-        env = MujocoPointMass(randomize_physics=randomize_physics)
-        if policy == "active":
-            raise ValueError("--policy active is gridworld-specific (B11); use random for mujoco")
+        # v4.1: active mujoco data uses the COAST/PUSH policy and the no-op
+        # action (9-action space) so friction can reveal itself.
+        env = MujocoPointMass(randomize_physics=randomize_physics, include_noop=policy == "active")
     else:
         env = CruelGridworld(
             randomize_physics=randomize_physics, process_noise_std=process_noise_std
@@ -76,9 +76,14 @@ def generate_with_exploration(
     if policy == "active":
         if rng is None:
             raise ValueError("--policy active requires --seed for reproducibility")
-        from atlas_wm.data.exploration import InfoSeekingPolicy
+        if env_name == "mujoco":
+            from atlas_wm.data.exploration import CoastPushPolicy
 
-        active_policy = InfoSeekingPolicy(rng=np.random.default_rng(seed + 10_000_000))
+            active_policy = CoastPushPolicy(rng=np.random.default_rng(seed + 10_000_000))
+        else:
+            from atlas_wm.data.exploration import InfoSeekingPolicy
+
+            active_policy = InfoSeekingPolicy(rng=np.random.default_rng(seed + 10_000_000))
     elif policy != "random":
         raise ValueError(f"policy must be random|active, got {policy!r}")
 

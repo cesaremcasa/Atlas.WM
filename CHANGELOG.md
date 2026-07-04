@@ -6,7 +6,23 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-(nothing yet)
+### Added (v4.1 — physics identification on the MuJoCo tier)
+
+- **COAST/PUSH active policy for MuJoCo** (`CoastPushPolicy` + no-op action
+  8 in `MujocoPointMass`): random-policy MuJoCo data identifies nothing
+  (R² ≈ 0, 332 eps) — friction needs free sliding, mass needs contacts;
+  the policy manufactures both events.
+- **`atlas_wm.data.mujoco_features`** (16 dims): box-coast deceleration →
+  μ·g (Coulomb decelerates linearly, not exponentially) and ALIGNED-contact
+  impulse response → mass (head-on contacts only, cos > 0.8 — the raw
+  speed-ratio confounded geometry with mass at R² −0.27); running medians
+  per the B10 pattern. Belief trainer is env-aware via `obs_scale.json`.
+- **Result** (1048 episodes, window 60): learned belief **friction +0.28,
+  mass +0.11** — both positive on real contact physics; structural finding:
+  gravity alone is unidentifiable here (only μ·g enters box dynamics) and
+  is excluded BY STRUCTURE, with the measurement to back it. Measured
+  iteration ledger in the part-1/2/3 commit messages, including the
+  agent-rides-frictionless-slide-joints discovery.
 
 ## [4.0.0] — 2026-07-04
 

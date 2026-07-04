@@ -66,3 +66,17 @@ class TestInfoSeekingPolicy:
             f"active exploration lost its information advantage: "
             f"active mean |err| = {err_active:.4f} vs random {err_random:.4f}"
         )
+
+
+class TestCoastPushPolicy:
+    """v4.1: MuJoCo COAST/PUSH policy contract."""
+
+    def test_emits_noop_during_coast_and_valid_actions(self):
+        from atlas_wm.data.exploration import CoastPushPolicy
+
+        pol = CoastPushPolicy(rng=np.random.default_rng(0), epsilon=0.0)
+        obs = np.array([0.0, 0.0, 0.5, 0.5, -0.5, -0.5])
+        acts = [pol.act(obs) for _ in range(24)]
+        assert all(0 <= a <= 8 for a in acts)
+        assert all(a == 8 for a in acts[14:24]), "coast phase must be no-ops"
+        assert all(a != 8 for a in acts[:14]), "push phase must command"

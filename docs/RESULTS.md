@@ -17,6 +17,8 @@ them. Dates: v4.0 rebuild executed 2026-07-02 → 2026-07-04 (PRs #25–#44).
 | 7 | Physical structure generalizes where MLPs interpolate | Symplectic-dissipative head: OOD gravity degradation **+12% vs +69%** (residual) — but absolute error 3.5× worse in-dist (honest negative) | `model.dynamics_head`, `tests/test_hamiltonian_head.py` |
 | 8 | The pipeline is environment-general | Unchanged pipeline on real MuJoCo contact physics: h=1 MSE 0.001089 vs linear ceiling 0.000465 (**2.3× gap vs 3.6×** on the gridworld) | `atlas_wm/environments/mujoco_pointmass.py` |
 
+| 9 | The identification thesis transfers to real contact physics (v4.1) | COAST/PUSH policy + physics-informed features on MuJoCo: learned belief **friction +0.28, mass +0.11** (random + generic stats: R² ≈ 0); gravity alone structurally unidentifiable (only μ·g enters box dynamics) | `atlas_wm/data/mujoco_features.py`, `CoastPushPolicy` |
+
 ## Retractions (v3.x claims that did not survive re-verification)
 
 1. **"friction_agent is not identifiable"** — wrong. The original oracle was
