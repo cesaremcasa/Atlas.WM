@@ -17,6 +17,21 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   measured the box-containment bug fixed in B1. See the retraction notice in
   `docs/MODEL_CARD.md`; full re-baseline lands with B5.
 
+### Changed (v4 B9 — immutable anchor, critic retired)
+
+- **Adversarial critic retired from training** (finding C4: with
+  random-policy data, I(z_imm; action) = 0 for any encoder — the game was
+  an arms race around noise). Module kept with a deprecation note; action
+  routing is architectural (actions only enter `control_net`).
+- **Immutable anchor** — the intervention loss v3.x promised and never
+  shipped (C3): within-episode invariance + cross-episode VICReg on z_imm
+  episode means. Mechanism regression-tested with a 10× variance-floor test
+  on identity-observable synthetic data. On CruelGridworld a single input
+  carries no episode identity (ratio ≈3 with or without; ~25% h=1 cost), so
+  the anchor ships **disabled by default** here — to be enabled with B12
+  belief integration / B14+ richer envs. A control run confirms the
+  refactor itself is clean (h=1: 0.001165 vs B8's 0.001157).
+
 ### Added (v4 B8 — multi-step rollout training + real evaluation)
 
 - **`training.rollout_k`** (default 4): K-step self-fed rollout training —

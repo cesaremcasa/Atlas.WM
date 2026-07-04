@@ -7,6 +7,14 @@ We enforce this adversarially:
   Encoder step: maximize that same prediction loss (fool the critic).
 
 The critic is a small MLP; its separate optimizer runs before the main backward pass.
+
+.. deprecated:: 4.0 (B9)
+    Retired from training. With random-policy data the action is sampled
+    independently of the observation, so I(z_imm(obs); action) = 0 for ANY
+    encoder — there is no action information to remove, and the adversarial
+    game reduces to an arms race around noise (v4 roadmap finding C4). The
+    immutable anchor in scripts/train.py replaces it. Kept for reference
+    and for the historical unit tests.
 """
 
 from __future__ import annotations

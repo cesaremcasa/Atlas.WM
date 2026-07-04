@@ -116,7 +116,10 @@ class TestDImmutablePlumbing:
         assert dims["d_immutable"] == d_immutable
         assert dims["d_static"] == d_immutable + d_slow
 
-    def test_critic_state_is_checkpointed(self, tmp_path):
+    def test_checkpoint_has_no_retired_critic(self, tmp_path):
+        # v4 B9: the adversarial critic was retired (finding C4 — provably a
+        # no-op under random-policy data). Checkpoints must carry exactly the
+        # three inference modules.
         config = _make_config(tmp_path)
         ckpt = str(tmp_path / "model.safetensors")
         _run(config, checkpoint=ckpt)
@@ -126,6 +129,5 @@ class TestDImmutablePlumbing:
             strict_env=False,
             allow_unsigned=True,
         )
-        assert any(k.startswith("critic.") for k in state_dict), (
-            "Critic weights missing from checkpoint — adversarial training cannot resume (M8)"
-        )
+        prefixes = {k.split(".", 1)[0] for k in state_dict}
+        assert prefixes == {"encoder", "dynamics", "decoder"}
