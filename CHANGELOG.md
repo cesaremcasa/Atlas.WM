@@ -17,6 +17,15 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   measured the box-containment bug fixed in B1. See the retraction notice in
   `docs/MODEL_CARD.md`; full re-baseline lands with B5.
 
+### Changed (v4 B16 — uv lockfile)
+
+- **`uv.lock` is the canonical lockfile** (cross-platform, hashed;
+  `uv sync --locked` in CI and `make install`). `requirements.lock` is
+  retained for one release as a fallback and for the pip-audit gate.
+  Trackio/tyro adoption (roadmap B16 stretch) deferred: swapping config
+  and tracking layers mid-release adds risk without changing any result;
+  tracked for v4.1.
+
 ### Removed (v4 B15 — EntityEncoder retired)
 
 - **`EntityEncoder` moved to `archive/`**: it was dead code — never wired

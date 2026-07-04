@@ -1,7 +1,7 @@
 .PHONY: install lint type test security ci-local sbom
 
 install:
-	pip install -e ".[dev]"
+	uv sync --extra dev
 
 lint:
 	ruff check src/ tests/ scripts/
