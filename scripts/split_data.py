@@ -134,6 +134,12 @@ def split_data(
         os.remove(normalized_sentinel)
         print("Removed legacy .normalized sentinel")
 
+    scale_src = os.path.join(raw_dir, "obs_scale.json")
+    if os.path.exists(scale_src):
+        import shutil
+
+        shutil.copy(scale_src, os.path.join(processed_dir, "obs_scale.json"))
+
     with open(sentinel, "w") as f:
         f.write(fingerprint + "\n")
     print(f"Done — processed data in {processed_dir}/")

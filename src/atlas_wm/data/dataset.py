@@ -12,6 +12,18 @@ from torch.utils.data import Dataset
 DEFAULT_OBS_SCALE = 20.0
 
 
+def resolve_obs_scale(data_dir: str, obs_scale: float) -> float:
+    """Per-dataset scale: {data_dir}/obs_scale.json overrides the default
+    (v4 B14 — MuJoCo observations live in [-1.2, 1.2], not [0, 20])."""
+    import json
+
+    path = os.path.join(data_dir, "obs_scale.json")
+    if obs_scale == DEFAULT_OBS_SCALE and os.path.exists(path):
+        with open(path) as f:
+            return float(json.load(f)["obs_scale"])
+    return obs_scale
+
+
 def reject_legacy_normalized(data_dir: str) -> None:
     """Fail loudly on data dirs normalized in place by pre-v4 ``train.py``.
 
@@ -59,6 +71,7 @@ class ATLASDataset(Dataset):
             raise ValueError(f"frame_stack must be 1 or 2, got {frame_stack}")
 
         reject_legacy_normalized(data_dir)
+        obs_scale = resolve_obs_scale(data_dir, obs_scale)
 
         obs_path = f"{data_dir}/{split}_obs.npy"
         actions_path = f"{data_dir}/{split}_actions.npy"
