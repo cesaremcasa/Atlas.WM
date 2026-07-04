@@ -74,3 +74,20 @@ def vicreg_regularizer(z: torch.Tensor, gamma: float = 1.0) -> tuple[torch.Tenso
     off_diag_sq = cov.pow(2).sum() - cov.diagonal().pow(2).sum()
     covariance_loss = off_diag_sq / d
     return variance_loss, covariance_loss
+
+
+def info_nce(z_a: torch.Tensor, z_b: torch.Tensor, temperature: float = 0.2) -> torch.Tensor:
+    """Symmetric InfoNCE (NT-Xent) between two views (v4 B10).
+
+    Rows of ``z_a``/``z_b`` are views of the same underlying item (e.g. two
+    half-windows of the same episode); other batch rows act as negatives.
+    Pulls same-episode beliefs together and pushes different-episode beliefs
+    apart — the DYSCO-style contrastive signal for physics identification.
+    """
+    a = nn.functional.normalize(z_a, dim=-1)
+    b = nn.functional.normalize(z_b, dim=-1)
+    logits = a @ b.T / temperature
+    labels = torch.arange(len(a), device=z_a.device)
+    return 0.5 * (
+        nn.functional.cross_entropy(logits, labels) + nn.functional.cross_entropy(logits.T, labels)
+    )
