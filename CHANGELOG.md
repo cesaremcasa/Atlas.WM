@@ -17,6 +17,18 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   measured the box-containment bug fixed in B1. See the retraction notice in
   `docs/MODEL_CARD.md`; full re-baseline lands with B5.
 
+### Security (v4 B17 — fail-closed checkpoint verification)
+
+- **`load_checkpoint(require_signature=True)`** (finding H4): missing
+  manifest, unset/malformed/short `ATLAS_SIGNING_KEY`, a file **not
+  listed** in the manifest, or any manifest integrity failure now raise
+  `SignatureMismatch` instead of warning — an attacker who can replace a
+  checkpoint could previously just delete the manifest. Legacy fail-open
+  behavior unchanged when the flag is off; 4 new tests. The torch.export/
+  dynamo ONNX switch and OpenSSF model-signing are deferred to v4.1
+  (exporter swap at release time adds risk; the current exporter is
+  parity-tested).
+
 ### Changed (v4 B16 — uv lockfile)
 
 - **`uv.lock` is the canonical lockfile** (cross-platform, hashed;

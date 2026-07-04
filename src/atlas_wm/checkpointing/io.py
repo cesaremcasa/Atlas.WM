@@ -91,6 +91,7 @@ def load_checkpoint(
     strict_env: bool = True,
     current_env_hash: str | None = None,
     allow_unsigned: bool = False,
+    require_signature: bool = False,
 ) -> tuple[dict, dict[str, str]]:
     """Load a safetensors checkpoint and validate metadata.
 
@@ -100,6 +101,10 @@ def load_checkpoint(
         strict_env: If True, validate env_hash against current_env_hash.
         current_env_hash: Hash of the current environment (from env_hash.py).
         allow_unsigned: If True, skip signature verification (emits RuntimeWarning).
+        require_signature: Fail-closed mode (v4 B17): a missing manifest,
+            missing/malformed ATLAS_SIGNING_KEY, or a file not listed in the
+            manifest all raise SignatureMismatch instead of warning. Use for
+            production loads; overrides allow_unsigned.
 
     Returns:
         (state_dict, metadata) tuple.
@@ -126,7 +131,7 @@ def load_checkpoint(
     if not os.path.exists(path):
         raise FileNotFoundError(f"Checkpoint not found: {path!r}")
 
-    if allow_unsigned:
+    if allow_unsigned and not require_signature:
         import warnings
 
         warnings.warn(
@@ -136,7 +141,7 @@ def load_checkpoint(
             stacklevel=2,
         )
     else:
-        _verify_signature_if_manifest_exists(path)
+        _verify_signature(path, fail_closed=require_signature)
 
     state_dict = load_file(path)
 
@@ -164,18 +169,28 @@ def load_checkpoint(
     return state_dict, metadata
 
 
-def _verify_signature_if_manifest_exists(path: str) -> None:
-    """Verify checkpoint signature against manifest if manifest exists.
+def _verify_signature(path: str, fail_closed: bool = False) -> None:
+    """Verify checkpoint signature against the directory manifest.
 
-    This is a lightweight check; full signing is implemented in Block 4
-    (signing.py). For now, if no manifest exists, we skip verification.
+    Fail-open by default for research ergonomics; ``fail_closed=True``
+    (v4 B17, finding H4) turns every soft path into an error: an attacker
+    who can replace a checkpoint can also delete the manifest, an unset key
+    silently skipped verification, and a file NOT LISTED in an otherwise
+    valid manifest previously loaded cleanly.
     """
     manifest_path = os.path.join(os.path.dirname(path), "manifest.sig")
     if not os.path.exists(manifest_path):
+        if fail_closed:
+            raise SignatureMismatch(
+                f"require_signature=True but no manifest.sig next to {path!r} "
+                "(a deleted manifest must not silently disable verification)"
+            )
         return
 
     signing_key = os.environ.get("ATLAS_SIGNING_KEY")
     if not signing_key:
+        if fail_closed:
+            raise SignatureMismatch("require_signature=True but ATLAS_SIGNING_KEY is not set")
         import warnings
 
         warnings.warn(
@@ -186,15 +201,28 @@ def _verify_signature_if_manifest_exists(path: str) -> None:
         return
 
     try:
-        from atlas_wm.checkpointing.signing import verify_manifest
+        key = bytes.fromhex(signing_key)
+    except ValueError as exc:
+        raise SignatureMismatch(f"ATLAS_SIGNING_KEY is not valid hex: {exc}") from exc
+    if fail_closed and len(key) < 16:
+        raise SignatureMismatch("ATLAS_SIGNING_KEY must be at least 16 bytes")
 
-        mismatches = verify_manifest(manifest_path, bytes.fromhex(signing_key))
-        filename = os.path.basename(path)
-        for m in mismatches:
-            if m.path == filename:
-                raise SignatureMismatch(f"Signature mismatch for {path!r}: {m.reason}")
-    except ImportError:
-        pass
+    from atlas_wm.checkpointing.signing import load_manifest, verify_manifest
+
+    filename = os.path.basename(path)
+    manifest = load_manifest(manifest_path)
+    listed = filename in manifest.get("files", {})
+    if fail_closed and not listed:
+        raise SignatureMismatch(
+            f"{filename!r} is not listed in the signed manifest — refusing to "
+            "load an unlisted file in require_signature mode"
+        )
+    mismatches = verify_manifest(manifest_path, key)
+    for m in mismatches:
+        # Fail-closed: ANY manifest integrity failure refuses the load;
+        # fail-open keeps the legacy own-file-only behavior.
+        if fail_closed or m.path == filename:
+            raise SignatureMismatch(f"Signature mismatch for {path!r}: {m.reason}")
 
 
 def make_metadata(
