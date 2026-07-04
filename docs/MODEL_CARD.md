@@ -1,11 +1,11 @@
-# Model Card — Atlas.WM v3.1
+# Model Card — Atlas.WM v4.0
 
 A structured world model that decomposes its latent space into interpretable
 components with **architectural** (not merely learned) guarantees.
 
 ## Model details
 
-- **Name / version:** Atlas.WM 3.1.0
+- **Name / version:** Atlas.WM 4.0.0
 - **Type:** Latent-space world model (encoder + structured one-step dynamics)
 - **Author:** Cesar Augusto
 - **License:** MIT

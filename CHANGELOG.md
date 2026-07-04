@@ -6,6 +6,16 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+(nothing yet)
+
+## [4.0.0] — 2026-07-04
+
+The correction-and-retraction rebuild: every v3.x headline claim was
+re-verified, two were retracted, and the training recipe, data pipeline,
+evaluation methodology and environment tier were rebuilt with honest,
+reproducible measurements (18-block roadmap in `docs/v4.0-ROADMAP.md`,
+executed as PRs #25–#43).
+
 ### Retracted (v4 B4)
 
 - **The Block-14 identifiability finding.** `friction_agent` IS identifiable
@@ -337,6 +347,7 @@ locked architectural decisions (AD-1 … AD-8). Delivered as 13 sequential block
 Continuous-physics world model with structured latents on `CruelGridworld`.
 See `docs/v2.0-COMPLETION-REPORT.md` and `docs/v2.0-TECHNICAL-POSTMORTEM.md`.
 
+[4.0.0]: https://github.com/cesaremcasa/Atlas.WM/releases/tag/v4.0.0
 [3.1.0]: https://github.com/cesaremcasa/Atlas.WM/releases/tag/v3.1.0
 [3.0.0]: https://github.com/cesaremcasa/Atlas.WM/releases/tag/v3.0.0
 [2.0.0]: https://github.com/cesaremcasa/Atlas.WM/releases/tag/v2.0.0

@@ -3,9 +3,9 @@
 [![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.1+-orange.svg)](https://pytorch.org/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Status](https://img.shields.io/badge/status-v4.0%20in%20progress-blue.svg)](docs/v4.0-ROADMAP.md)
+[![Status](https://img.shields.io/badge/status-v4.0.0%20released-green.svg)](docs/v4.0-ROADMAP.md)
 
-**Status:** v4.0 in progress — Phase 0 (correction & retraction) complete. See [`docs/v4.0-ROADMAP.md`](docs/v4.0-ROADMAP.md) for the red-team findings and the 18-block plan; v3.x identifiability claims were retracted ([model card](docs/MODEL_CARD.md)).
+**Status:** **v4.0.0 released (2026-07-04)** — the correction-and-retraction rebuild. 17 of the 18 roadmap blocks landed (PRs #25–#43): environment and data-pipeline bugs fixed, two v3.x findings retracted with committed evidence, stable training objective (VICReg + prediction grounding + K-step rollouts), first positive learned physics identification (gravity R² 0.67 with active exploration, +39% over random data), causal belief conditioning, MuJoCo environment tier, uv lockfile, fail-closed checkpoint verification. See [`CHANGELOG.md`](CHANGELOG.md), the [model card](docs/MODEL_CARD.md) and [`docs/v4.0-ROADMAP.md`](docs/v4.0-ROADMAP.md).
 
 See [`CHANGELOG.md`](CHANGELOG.md), the [model card](docs/MODEL_CARD.md), and
 `scripts/export_onnx.py` for the ONNX export (`pip install 'atlas-wm[export]'`).
