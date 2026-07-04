@@ -17,6 +17,15 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   measured the box-containment bug fixed in B1. See the retraction notice in
   `docs/MODEL_CARD.md`; full re-baseline lands with B5.
 
+### Removed (v4 B15 — EntityEncoder retired)
+
+- **`EntityEncoder` moved to `archive/`**: it was dead code — never wired
+  to any environment ("n_objects ∈ [3, 10]" was never exercised) and
+  permutation-*invariant* (mean-pool), not equivariant as documented.
+  Real multi-object support belongs to the v5 line on the MuJoCo tier
+  (slot/particle direction per the roadmap), not to a vestigial module
+  whose claims the code never backed.
+
 ### Added (v4 B14 — MuJoCo environment tier)
 
 - **`MujocoPointMass`** (`--env mujoco`): actuated ball + two passive boxes,
