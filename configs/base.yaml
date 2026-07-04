@@ -63,7 +63,8 @@ training:
   lambda_physics: 0.0          # supervised physics aux loss; 0 = disabled (no labels)
 
 belief_encoder:
-  window_k: 10                 # GRU window length; ~10 steps to identify gravity/friction
+  window_k: 10
+  lambda_contrastive: 0.1      # v4 B10: DYSCO-style half-window InfoNCE                 # GRU window length; ~10 steps to identify gravity/friction
 
 checkpointing:
   checkpoint_dir: "checkpoints"

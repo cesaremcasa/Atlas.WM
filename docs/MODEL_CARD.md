@@ -271,6 +271,47 @@ Honest measurements:
   informative" lands there, not here; leaving the anchor on today would be
   paying real prediction error for provably absent information.
 
+## Belief encoder v2 — engineered dynamics features (v4 B10)
+
+The belief encoder now consumes **engineered per-step dynamics features**
+(`atlas_wm/data/dynamics_features.py`, 27 dims: the oracle's gated
+velocity-decay ratio + its running median, excitation, distances, box
+acceleration projections onto attractor directions, 1/d² regressors,
+aligned actions) instead of raw obs windows, with a **heteroscedastic
+head** (μ, logσ; Gaussian NLL) and a **half-window InfoNCE** episode
+contrastive. First positive learned physics identification in the
+project (supervised head, val, window 40; raw-GRU baseline from B5):
+
+| Parameter | raw-GRU (B5) | belief v2 |
+|---|---|---|
+| gravity | −0.05 | **+0.43** |
+| friction_agent | −0.49 | **+0.22** |
+| friction_box | −0.10 | **+0.09** |
+
+What the debugging established (each stage measured):
+
+1. Without the oracle's **gravity gate** on ratio validity, biased "valid"
+   steps poison the GRU's mean-style aggregation (medians resist outliers;
+   GRUs don't). Gravity flipped positive first because its features are
+   action-free.
+2. An **action-alignment off-by-one** paired each decay ratio with the
+   next step's action; the unit test initially validated the bug because
+   its fixture used the same shift. Fixed and verified digit-for-digit
+   against the oracle on identical frames.
+3. The remaining gap to the oracle's 0.865 is **evidence length, not
+   modeling**: friction_agent lives in [0.90, 0.99] (std 0.025) while the
+   optimal estimator's error over an 18-step window is std 0.043 — SNR < 1,
+   so no learner can score positive there. 38-step windows (window_k 40,
+   now the default) bring the error to the signal's scale; the oracle's
+   0.865 uses full ~50-step episodes. Ridge probes at window 40 rest on
+   only 42 val episodes and are statistically fragile (±0.5 swings) — the
+   supervised-head val R² above is the stable metric.
+
+Direct consequence for **B11**: active exploration raises the per-step
+information rate (more valid steps: excited, boxes distant, no bounces),
+which shortens the window needed for a given belief quality — measure
+valid-steps/window under active vs random policies alongside R².
+
 ## Limitations & ethical considerations
 
 - Trained and evaluated only on a synthetic toy environment; no transfer claims.

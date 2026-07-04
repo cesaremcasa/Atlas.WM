@@ -60,7 +60,11 @@ training:
   lambda_physics: 0.0          # 0 for world model training; physics encoding is via PhysicsBeliefEncoder
 
 belief_encoder:
-  window_k: 20                 # GRU window; needs ~50-step episodes (--episode-reset-prob 0.02)
+  # v4 B10: 40-frame windows — belief error scales with evidence length;
+  # at 20 frames the friction estimator's noise exceeds the target's own
+  # std (SNR < 1) and no learner can go positive. See MODEL_CARD.
+  window_k: 40
+  lambda_contrastive: 0.1      # v4 B10: DYSCO-style half-window InfoNCE                 # GRU window; needs ~50-step episodes (--episode-reset-prob 0.02)
 
 probing:
   latent_key: "z_static_slow"

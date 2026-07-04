@@ -37,14 +37,19 @@ from typing import Any
 
 import numpy as np
 import torch
-import torch.nn as nn
 import torch.optim as optim
 import yaml
 from torch.utils.data import DataLoader
 
 from atlas_wm.checkpointing.io import make_metadata, save_checkpoint
+from atlas_wm.data.dynamics_features import N_FEATURES, build_dynamics_features
 from atlas_wm.data.episode_dataset import EpisodeATLASDataset
-from atlas_wm.models.physics_belief import PhysicsBeliefEncoder, PhysicsHead
+from atlas_wm.models.physics_belief import (
+    DistributionalPhysicsHead,
+    PhysicsBeliefEncoder,
+    gaussian_nll,
+)
+from atlas_wm.training.objectives import info_nce
 from atlas_wm.utils.seeding import seed_worker, set_seed
 
 _BASE_CONFIG = os.path.join(os.path.dirname(__file__), "..", "configs", "base.yaml")
@@ -110,11 +115,14 @@ def train_belief_encoder(args: argparse.Namespace) -> None:
     window_k: int = args.window_k or cfg.get("belief_encoder", {}).get("window_k", 10)
     obs_dim: int = mcfg["input_dim"]
     action_dim: int = cfg["environment"]["action_space_size"]
-    # Input: concat(obs, Δobs, action) — velocity proxy gives GRU direct access to
-    # momentum changes caused by gravity/friction, which are invisible from positions alone.
-    gru_input_dim: int = obs_dim * 2 + action_dim  # obs(6) + vel(6) + action(8) = 20
+    # v4 B10: the GRU consumes ENGINEERED dynamics features (the closed-form
+    # oracle's per-step decay ratios, gravity projections, distances), not raw
+    # obs sequences — the re-baseline showed raw windows score negative R^2 on
+    # physics a linear estimator recovers at 0.87 from the same data.
+    gru_input_dim: int = N_FEATURES
     d_slow: int = mcfg["d_static_slow"]
     n_physics = len(PHYSICS_KEYS)
+    lam_contrastive: float = cfg.get("belief_encoder", {}).get("lambda_contrastive", 0.1)
 
     try:
         train_ds = EpisodeATLASDataset(data_dir, split="train", window_k=window_k)
@@ -161,7 +169,7 @@ def train_belief_encoder(args: argparse.Namespace) -> None:
     belief_enc = PhysicsBeliefEncoder(obs_dim=gru_input_dim, d_slow=d_slow, hidden_dim=128).to(
         device
     )
-    physics_head = PhysicsHead(d_slow=d_slow, n_physics=n_physics).to(device)
+    physics_head = DistributionalPhysicsHead(d_slow=d_slow, n_physics=n_physics).to(device)
 
     params = list(belief_enc.parameters()) + list(physics_head.parameters())
     optimizer = optim.Adam(params, lr=lr)
@@ -176,8 +184,9 @@ def train_belief_encoder(args: argparse.Namespace) -> None:
 
     best_val_r2 = -float("inf")
     print(
-        f"\nTraining PhysicsBeliefEncoder — window_k={window_k}, d_slow={d_slow}, "
-        f"gru_input={gru_input_dim}D (obs+vel+action)"
+        f"\nTraining PhysicsBeliefEncoder v2 — window_k={window_k}, d_slow={d_slow}, "
+        f"gru_input={gru_input_dim}D (engineered dynamics features), "
+        f"distributional head, lambda_contrastive={lam_contrastive}"
     )
     print(f"Predicting: {PHYSICS_KEYS}")
 
@@ -194,14 +203,21 @@ def train_belief_encoder(args: argparse.Namespace) -> None:
             # Normalize physics targets
             physics_norm = (physics_gt - phys_mean_t) / phys_std_t
 
-            # Velocity proxy: Δobs_t = obs_t - obs_{t-1} (zero-padded at t=0)
-            vel_window = torch.zeros_like(obs_window)
-            vel_window[:, 1:] = obs_window[:, 1:] - obs_window[:, :-1]
-            sa_window = torch.cat([obs_window, vel_window, action_window], dim=-1)  # [B, K, 20]
+            feats = build_dynamics_features(obs_window, action_window)  # [B, K-2, F]
 
-            z_slow = belief_enc(sa_window)
-            physics_hat_norm = physics_head(z_slow)
-            loss = nn.functional.mse_loss(physics_hat_norm, physics_norm)
+            z_slow = belief_enc(feats)
+            mu, logvar = physics_head(z_slow)
+            loss = gaussian_nll(mu, logvar, physics_norm)
+
+            # DYSCO-style contrastive: the two halves of a same-episode window
+            # must map to the same belief; other episodes in the batch are
+            # negatives. Complements the supervised NLL with a label-free
+            # episode-identification signal.
+            if lam_contrastive > 0 and feats.shape[1] >= 4:
+                half = feats.shape[1] // 2
+                z_a = belief_enc(feats[:, :half])
+                z_b = belief_enc(feats[:, half:])
+                loss = loss + lam_contrastive * info_nce(z_a, z_b)
 
             optimizer.zero_grad()
             loss.backward()
@@ -219,12 +235,11 @@ def train_belief_encoder(args: argparse.Namespace) -> None:
                 obs_window = batch["obs_window"].to(device)
                 action_window = batch["action_window"].to(device)
                 physics_gt = batch["physics"].to(device)[:, target_idx_t]
-                vel_window = torch.zeros_like(obs_window)
-                vel_window[:, 1:] = obs_window[:, 1:] - obs_window[:, :-1]
-                sa_window = torch.cat([obs_window, vel_window, action_window], dim=-1)
-                z_slow = belief_enc(sa_window)
+                feats = build_dynamics_features(obs_window, action_window)
+                z_slow = belief_enc(feats)
+                mu, _logvar = physics_head(z_slow)
                 # Unnormalize for R² computation
-                physics_hat = physics_head(z_slow) * phys_std_t + phys_mean_t
+                physics_hat = mu * phys_std_t + phys_mean_t
                 all_hat.append(physics_hat.cpu())
                 all_gt.append(physics_gt.cpu())
 
@@ -264,7 +279,9 @@ def train_belief_encoder(args: argparse.Namespace) -> None:
             meta["action_dim"] = str(action_dim)
             meta["d_slow"] = str(d_slow)
             meta["window_k"] = str(window_k)
-            meta["use_velocity"] = "true"
+            meta["features"] = "dynamics_v1"
+            meta["n_features"] = str(N_FEATURES)
+            meta["head"] = "distributional"
             meta["physics_keys"] = json.dumps(PHYSICS_KEYS)
             meta["physics_mean"] = json.dumps(physics_mean.tolist())
             meta["physics_std"] = json.dumps(physics_std.tolist())

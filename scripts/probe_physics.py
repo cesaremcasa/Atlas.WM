@@ -124,19 +124,27 @@ def _probe_belief_encoder(
 
     use_actions = action_dim_meta > 0
     use_velocity = meta.get("use_velocity", "false") == "true"
+    use_dynamics_features = meta.get("features", "") == "dynamics_v1"
+    if use_dynamics_features:
+        from atlas_wm.data.dynamics_features import build_dynamics_features
     all_z, all_physics, all_eps = [], [], []
     with torch.no_grad():
         for i in range(len(ds)):
             item = ds[i]
             obs_w = item["obs_window"].unsqueeze(0)  # [1, K, obs_dim]
-            parts = [obs_w]
-            if use_velocity:
-                vel_w = torch.zeros_like(obs_w)
-                vel_w[:, 1:] = obs_w[:, 1:] - obs_w[:, :-1]
-                parts.append(vel_w)
-            if use_actions:
-                parts.append(item["action_window"].unsqueeze(0))
-            z = belief_enc(torch.cat(parts, dim=-1))
+            if use_dynamics_features:
+                # v4 B10 checkpoints consume engineered dynamics features.
+                gru_in = build_dynamics_features(obs_w, item["action_window"].unsqueeze(0))
+            else:
+                parts = [obs_w]
+                if use_velocity:
+                    vel_w = torch.zeros_like(obs_w)
+                    vel_w[:, 1:] = obs_w[:, 1:] - obs_w[:, :-1]
+                    parts.append(vel_w)
+                if use_actions:
+                    parts.append(item["action_window"].unsqueeze(0))
+                gru_in = torch.cat(parts, dim=-1)
+            z = belief_enc(gru_in)
             all_z.append(z.squeeze(0).numpy())
             all_physics.append(item["physics"].numpy())
             all_eps.append(int(ds.episode_ids[int(ds.valid_indices[i])]))

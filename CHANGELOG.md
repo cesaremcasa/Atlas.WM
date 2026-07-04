@@ -17,6 +17,21 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   measured the box-containment bug fixed in B1. See the retraction notice in
   `docs/MODEL_CARD.md`; full re-baseline lands with B5.
 
+### Added (v4 B10 — belief encoder v2)
+
+- **Engineered dynamics features** (`atlas_wm.data.dynamics_features`, 27
+  dims: gated decay ratio + running median — the oracle's sufficient
+  statistic — excitation, distances, box-acceleration projections, 1/d²,
+  aligned actions) replace raw obs windows as the belief GRU's input;
+  **heteroscedastic physics head** (μ, logσ, Gaussian NLL) and
+  **half-window InfoNCE** episode contrastive added; `window_k` default 40
+  (evidence-length analysis in MODEL_CARD).
+- **First positive learned physics identification**: supervised val R²
+  gravity **+0.43**, friction_agent **+0.22**, friction_box **+0.09**
+  (raw-GRU baseline: −0.05 / −0.49 / −0.10). Remaining gap to the 0.865
+  oracle is evidence length (SNR < 1 at short windows), not modeling —
+  the direct setup for B11 active exploration.
+
 ### Changed (v4 B9 — immutable anchor, critic retired)
 
 - **Adversarial critic retired from training** (finding C4: with

@@ -61,3 +61,25 @@ class PhysicsHead(nn.Module):
     def forward(self, z_static_slow: torch.Tensor) -> torch.Tensor:
         out: torch.Tensor = self.linear(z_static_slow)
         return out
+
+
+class DistributionalPhysicsHead(nn.Module):
+    """Heteroscedastic head: z_slow[B, d] -> (mu[B, n], logvar[B, n]) (v4 B10).
+
+    The belief over episode physics should carry uncertainty — windows with
+    little excitation identify parameters poorly, and a point estimate hides
+    that (CRAFT / Phys2Real direction). Train with :func:`gaussian_nll`.
+    """
+
+    def __init__(self, d_slow: int, n_physics: int = 3) -> None:
+        super().__init__()
+        self.mu = nn.Linear(d_slow, n_physics)
+        self.logvar = nn.Linear(d_slow, n_physics)
+
+    def forward(self, z_static_slow: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        return self.mu(z_static_slow), self.logvar(z_static_slow).clamp(-8.0, 4.0)
+
+
+def gaussian_nll(mu: torch.Tensor, logvar: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+    """Mean Gaussian negative log-likelihood (constant terms dropped)."""
+    return 0.5 * (logvar + (target - mu).pow(2) / logvar.exp()).mean()
