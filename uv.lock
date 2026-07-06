@@ -73,7 +73,7 @@ wheels = [
 
 [[package]]
 name = "atlas-wm"
-version = "4.0.0.dev0"
+version = "4.0.0"
 source = { editable = "." }
 dependencies = [
     { name = "gymnasium" },
