@@ -30,6 +30,9 @@ ENV/
 # not committed (deterministic since Block 12)
 data/raw/
 data/processed/
+# v4 experiment dataset variants (active policy, mujoco, OOD) — same rule:
+# regenerable by seed, never committed (audit finding A6)
+data_*/
 
 # Checkpoints — .pt files are unsafe (pickle); .safetensors are committed via manifest
 *.pt
