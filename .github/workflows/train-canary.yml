@@ -15,7 +15,7 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install package
-        run: pip install -e .
+        run: pip install -e ".[dev]"
       - name: Run determinism + training canaries
         # -k canary matches tests/test_determinism_canary.py and
         # tests/test_training_canary.py in the flat tests/ dir — the old

@@ -121,7 +121,8 @@ def build_dynamics_features(
     def _proj(acc_body: torch.Tensor, from_p: torch.Tensor, to_p: torch.Tensor) -> torch.Tensor:
         direction = to_p - from_p
         unit = direction / direction.norm(dim=-1, keepdim=True).clamp_min(1e-8)
-        return (acc_body * unit).sum(-1)
+        out: torch.Tensor = (acc_body * unit).sum(-1)
+        return out
 
     g_b0_a = _proj(acc[:, :, 1], p_start[:, :, 1], p_start[:, :, 0])
     g_b1_a = _proj(acc[:, :, 2], p_start[:, :, 2], p_start[:, :, 0])
