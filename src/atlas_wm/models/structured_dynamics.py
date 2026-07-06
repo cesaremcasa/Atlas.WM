@@ -108,6 +108,7 @@ class StructuredDynamics(nn.Module):
             q_next = q + self.ham_dt * p_next
             z_dynamic_next = torch.cat([q_next, p_next], dim=-1)
         else:
+            assert self.dynamic_net is not None  # residual head
             z_dynamic_next = z_dynamic + self.dynamic_net(z_dynamic)
 
         # Controllable: action-conditioned residual
