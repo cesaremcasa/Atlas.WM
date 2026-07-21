@@ -1,4 +1,4 @@
-# Atlas.WM — Usage Guide (v4.0)
+# Atlas.WM - Usage Guide (v4.0)
 
 ## Install
 
@@ -16,7 +16,7 @@ python scripts/generate_data.py --randomize-physics --process-noise-std 0.05 \
 python scripts/generate_data.py --policy active ...                    # + info-seeking policy (B11)
 python scripts/generate_data.py --env mujoco --randomize-physics ...   # MuJoCo tier (B14)
 
-# 2. Split (episode-grouped, fingerprinted — re-splits automatically when raw changes)
+# 2. Split (episode-grouped, fingerprinted - re-splits automatically when raw changes)
 python scripts/split_data.py [--raw-dir data/raw --processed-dir data/processed]
 
 # 3. Train the world model (VICReg + prediction grounding + K-step rollouts)
@@ -58,7 +58,7 @@ python scripts/oracle_friction_agent.py --episodes 400 --process-noise-std 0.05
 Safetensors-only, embedded metadata (dims, seed, objective, git_sha).
 Sign a checkpoint dir: `python scripts/sign_checkpoint.py` (HMAC-SHA256,
 `ATLAS_SIGNING_KEY`). Production loads: `load_checkpoint(...,
-require_signature=True)` — fail-closed (B17). Export:
+require_signature=True)` - fail-closed (B17). Export:
 `python scripts/export_onnx.py --checkpoint ... --out-dir export/`.
 
 ## Testing

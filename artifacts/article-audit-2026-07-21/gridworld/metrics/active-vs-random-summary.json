@@ -1,0 +1,27 @@
+{
+  "across_seed_mean": {
+    "absolute_gain": 0.10154195874929428,
+    "active_mean_r2": 0.3444817513227463,
+    "percent_gain_vs_random": 41.79717026744123,
+    "random_mean_r2": 0.242939792573452
+  },
+  "per_training_seed": {
+    "42": {
+      "absolute_gain": 0.09460888803005219,
+      "active_mean_r2": 0.340829461812973,
+      "percent_gain_vs_random": 38.42444462559966,
+      "random_mean_r2": 0.24622057378292084
+    },
+    "43": {
+      "absolute_gain": 0.10847502946853638,
+      "active_mean_r2": 0.34813404083251953,
+      "percent_gain_vs_random": 45.26223689698421,
+      "random_mean_r2": 0.23965901136398315
+    }
+  },
+  "sample_std_ddof1": {
+    "absolute_gain": 0.009804842640043962,
+    "active_mean_r2": 0.005165117358434319,
+    "random_mean_r2": 0.004639725281609642
+  }
+}

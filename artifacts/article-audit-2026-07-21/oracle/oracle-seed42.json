@@ -1,0 +1,11 @@
+{
+  "command": "uv run --python 3.11 python scripts/oracle_friction_agent.py --episodes 400 --steps 50 --seed 42 --process-noise-std 0.05",
+  "episodes_requested": 400,
+  "episodes_skipped": 37,
+  "episodes_used": 363,
+  "mae": 0.00675308124155545,
+  "process_noise_std": 0.05,
+  "r2": 0.8354263595938798,
+  "seed": 42,
+  "steps": 50
+}

@@ -1,0 +1,45 @@
+{
+  "algorithm": "SHA-256",
+  "tree_hash_method": "For each regular file in sorted relative-path order: update(path_utf8 + NUL + file_sha256_hex + NUL).",
+  "configs": {
+    "configs/experiments/v3_variable_physics.yaml": "d0a49ae6069a763b22bb1be03336908a41a49440f3f46cc2a66ad73147afcaad",
+    "artifacts/article-audit-2026-07-21/configs/gridworld-random.yaml": "912fa47ade61e529640474f46642a35b0fe0d6555f6db78634fb874d146b46c8",
+    "artifacts/article-audit-2026-07-21/configs/gridworld-active.yaml": "3d71f8ed3f6b82d7cd9f90a558043e7013dd6503912758e21c955473c5777dff",
+    "artifacts/article-audit-2026-07-21/configs/mujoco-active.yaml": "d95a5e6282b7fcc700a854a8681abdbb08e7e6d8882eb67cc7c62c438ae63ffc"
+  },
+  "dataset_tree_hashes": {
+    "artifacts/article-audit-2026-07-21/gridworld/random/raw": "71c3dc44876c40cf4c5ebcef0ef5ff1ec320dd77407764a24e7ccfe8a1ae3e44",
+    "artifacts/article-audit-2026-07-21/gridworld/random/processed": "e240db4cfda8549815679595bb12721045103221f47b662db366b2e55061a3db",
+    "artifacts/article-audit-2026-07-21/gridworld/active/raw": "71ee57b0906a31a61a0beb2dd1758aaac06c2e47865d0572622f280ecff9fd49",
+    "artifacts/article-audit-2026-07-21/gridworld/active/processed": "30fb75077d70d3cefc6c0a45181075ad4bd7b9377d5845ceffbc699f1ad7b152",
+    "data_mjactive/raw (historical, inspected only)": "a6f2939ddcc5e47eaa8b89817187d5ef88c5637f72da26a1456de3eb750f8ff7"
+  },
+  "checkpoints": {
+    "artifacts/article-audit-2026-07-21/gridworld/checkpoints/random-raw-w20-seed42.safetensors": "ca5ad01e173a1a55eb107404e226e1c8b90593cba4e9b1311678f5084788ec53",
+    "artifacts/article-audit-2026-07-21/gridworld/checkpoints/random-raw-w40-seed42.safetensors": "8aab4534939c67076f1b8c24b2b29a9946d455903430005d41a8381246477aab",
+    "artifacts/article-audit-2026-07-21/gridworld/checkpoints/random-engineered-w40-seed42.safetensors": "d957202c2b3138f5506fd51f332081a8a6eaf7abfb6440de77d3788c2fbd2047",
+    "artifacts/article-audit-2026-07-21/gridworld/checkpoints/active-engineered-w40-seed42.safetensors": "4d13ac81b156b9d4627e9d27a89add196880172064d2bba92f3156eabe2114ce",
+    "artifacts/article-audit-2026-07-21/gridworld/checkpoints/random-engineered-w40-seed43.safetensors": "633b1db5b2f73658e7a8bad1e47707d825dc307a47c862f9aa9308ec6043edff",
+    "artifacts/article-audit-2026-07-21/gridworld/checkpoints/active-engineered-w40-seed43.safetensors": "f43718ce437bdf99b9f1dac0ecee7cd3fcee198b0949680a47cf7104bb46465e",
+    "checkpoints/best_model.safetensors (read-only probe baseline)": "66c03c93e6ddc18a7445b0d118b63813052d1e8106aabe0e2d52ba7efab86e33",
+    "checkpoints/belief_v2.safetensors (historical comparison)": "4d9d6e7bc01aa6aa2c4114adaec00ab426dc6449b447d070eeed4edce4b0f8d2",
+    "checkpoints/belief_active.safetensors (historical comparison)": "e4be49b63ba2b063020f3dd260814f0849295990a0814f1cf79b7c37b3d9a789",
+    "checkpoints/physics_belief.safetensors (historical comparison)": "56b4b5fcdac63c518f1bc6e26d523f2e264547d383fb35ee6136d2fbc86ce34f",
+    "checkpoints/belief_mujoco.safetensors (historical, inspected only)": "21afe19e390ffc885e8d99da1066c47d3b1d7a36acba53163e5436dc411d670c"
+  },
+  "code_and_lock": {
+    "pyproject.toml": "2d7820321e9d850c5b6d467624cbad7602bef500f7f9358b35c6dcb0ce614b43",
+    "uv.lock": "a4ee0b84798e36269c0082761db137dc5b3b482ca7998daac2490433c2a43b25",
+    "scripts/generate_data.py": "d807e7fd9b08ee8266537937f16c5fb0d3d61f22a9c13ff49c7c6f83c1481420",
+    "scripts/split_data.py": "367e36a8232ca1d003922d9ab1e08d30f5861634d2151c32ea6c180ce29a4325",
+    "scripts/train_physics_belief.py": "aaf62d29a7afe3bc9e2597c15c578ed1df13778563a0055ea97422a51b0bdb38",
+    "scripts/probe_physics.py": "9a581760436f7106357a20ce2a3c6be2303a3959f3a25cbe36a8603c6406fe52",
+    "scripts/oracle_friction_agent.py": "9b58044877225b45b84b7773bb04916a6f03623e5e7193cd4cf388e8fedef242",
+    "src/atlas_wm/data/dynamics_features.py": "221c64d179120bf9910c7011d7b53e876f3691f2ea3ca599f7c2b2946786299a",
+    "src/atlas_wm/data/exploration.py": "e0d66d543626b9ef53e834ecdc86d27bc656939033737f556480576ea053df2c",
+    "git:9151305:scripts/train_physics_belief.py": {
+      "git_blob_sha1": "ed8ab53fc240f95d15d4d44bb4a932f4ad5dd978",
+      "sha256": "6e02a9c5995ec6e2f5bcc58a36b27868816631c2132351936c6cf93deaa66a94"
+    }
+  }
+}

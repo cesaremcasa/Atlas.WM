@@ -1,142 +1,162 @@
 # The Recipe, Not the Data: An Audited Ledger of Physics Identifiability in a Structured World Model
 
-**Cesar Augusto** · Atlas.WM v4.x · draft v0.1 (2026-07-04)
+**Cesar Augusto** · Atlas.WM v4.x · living research corpus (2026-07-21)
+
+> Este é o corpus vivo do artigo. A arquitetura narrativa, as fontes de verdade e os
+> gates da versão final estão em [`FINAL_VERSION_ROADMAP.md`](FINAL_VERSION_ROADMAP.md).
+> O apêndice público de erros, retratações e correções está em
+> [`../docs/ERRORS_AND_CORRECTIONS.md`](../docs/ERRORS_AND_CORRECTIONS.md).
+> Claims, evidências e gates editoriais estão em
+> [`CLAIMS_EVIDENCE.md`](CLAIMS_EVIDENCE.md).
 
 ## Abstract
 
-We present an end-to-end audited study of physical-parameter
-identifiability in a small structured world model, across a toy 2D
-environment and a MuJoCo contact-physics environment. Our starting point
-is a retraction: the project's previous conclusion — that a friction
-parameter was "not identifiable" under random exploration — was wrong,
-caused by an uncommitted evaluation oracle whose MSE objective was
-destroyed by heavy-tailed collision outliers, compounded by a simulator
-bug that silently voided the physics signal. Re-verifying every claim
-produced a three-step thesis, each step measured under episode-held-out
-evaluation: (1) **the information exists** — a robust closed-form
-estimator recovers friction at R² = 0.87 from the same noisy data where a
-GRU belief encoder scores −0.49; (2) **features unlock learning** —
-handing the estimator's sufficient statistics to the same GRU flips all
-three parameters positive (gravity +0.43); (3) **collection amplifies** —
-an information-seeking policy improves belief quality +39% over random
-data with the model held fixed. The thesis transfers to MuJoCo contact
-physics (friction +0.28, mass +0.11 from a zero baseline), where analysis
-also yields a structural identifiability result (only the μ·g product
-enters box dynamics) and a cautionary finding: deterministic
-information-seeking policies require *anti-fragility to unobservables* —
-a fixed-pattern policy repeatedly struck unseen obstacles and silently
-poisoned its own dataset. All claims map to committed scripts, seeded
-runs, and regression tests.
+Atlas.WM is a small, executable research system for studying when physical
+parameters can be inferred from partial trajectories. This paper records its
+construction as a laboratory artifact: the architecture, experiments that
+failed, the red-team review that invalidated earlier conclusions, the rebuilt
+evidence protocol, and the released product. Its question is not whether one
+model can estimate physics, but which conditions make an identifiability claim
+inspectable.
 
-## 1. Introduction
+The first conclusion about `friction_agent` was retracted. Its oracle was not
+versioned, least-squares evaluation was unstable under collision outliers, and
+the simulator allowed passive bodies to leave the arena. The corpus therefore
+separates historical results from re-executed evidence. In the 2026-07-21
+audit, a committed robust oracle reached R² = 0.835426 and MAE = 0.006753 on
+its recorded run; this supports qualitative identifiability but does not yet
+reconcile the historical R² = 0.865 value. A reproduced B10 configuration also
+showed positive held-out scores for gravity (0.4286), `friction_agent` (0.2172)
+and `friction_box` (0.0928). MuJoCo results remain historical until its
+dependency and protocol are reproduced.
 
-Negative identifiability results in world-model research are commonly
-attributed to the *data regime* — "the parameter is not observable under
-this policy." We document a case where that conclusion was published in a
-project's model card and was wrong three ways at once: the supporting
-oracle was never committed (unreproducible), its objective was
-statistically fragile (MSE under heavy-tailed outliers), and the
-environment itself had a bug that removed the signal being measured.
+The contribution is an auditable method and record, rather than a claim of
+general physical understanding. Every final quantitative statement will be tied
+to a dated artifact and a public correction ledger.
 
-Rather than merely fixing the record, we use the retraction as a method:
-every subsequent claim is (i) reproduced by a committed script, (ii)
-evaluated with episode-grouped splits (row-level splits leak episode
-labels through overlapping windows — we measure the leak at R² ≈ 0.3 on
-pure noise), and (iii) guarded by a regression test. The result is a
-compact, fully auditable account of *what makes physics learnable* in a
-latent world model, on two environments.
+## 1. The question before the model
 
-## 2. Setup
+World models are often evaluated as if a low loss established that a latent
+state captured the physical variables that matter. Atlas starts from a narrower
+proposition: a parameter may be present in the data, absent from a
+representation, or made invisible by the measurement protocol. These are
+different failures and must not share a conclusion.
 
-**Environments.** (a) *CruelGridworld*: 3 bodies on a bounded plane,
-nonlinear inter-object attraction (G/d², active 1<d<10), per-episode
-gravity/friction randomization, process noise σ=0.05, 8 discrete force
-actions, 6-D position-only observations. (b) *MujocoPointMass*: an
-actuated ball and two passive boxes on a bounded MuJoCo plane; episode
-latents are sliding friction, box masses and gravity; same discrete
-action interface (+ a no-op).
+The project uses partial observations, episode-level physics randomization and
+controlled actions to ask when gravity, friction and mass can be recovered. It
+does not claim real-world robotics, visual understanding or general physical
+reasoning. Its value is the preserved chain from architectural decision to
+executable artifact to qualified conclusion.
 
-**Belief model.** A GRU over K-step same-episode windows (RMA/VariBAD
-lineage) with a heteroscedastic Gaussian head; optionally a half-window
-InfoNCE episode-contrastive term. Inputs are either raw
-(obs, Δobs, action) sequences or engineered per-step dynamics features
-(below).
+We classify claims as verified, partial, under validation or retracted. A
+correction is part of the result, not an editorial inconvenience.
 
-**Protocol.** All splits are grouped by episode. Supervised held-out R²
-per parameter is the headline metric; ridge probes on frozen
-representations corroborate. Training is fully seeded; a canary test
-asserts bit-identical loss traces.
+## 2. The first architecture
 
-## 3. A retraction as a methodology lesson
+The v3 architecture separates what must remain unchanged from what can vary.
+Its latent interfaces distinguish immutable, slow, dynamic and controllable
+components; action routing is explicit rather than inferred by an adversarial
+critic; checkpoints, configuration and exports are part of the research
+contract. These are engineering hypotheses, not proof that a representation
+carries semantic physics.
 
-The prior model card claimed friction_agent unidentifiable (oracle
-"R² < 0"). A committed median-of-ratios estimator on position-only
-observations — per-step decay ratios ⟨v', v+αu⟩/‖v+αu‖², gated by
-excitation, boundary-bounce and interaction filters, aggregated by the
-median — recovers it at **R² = 0.865 (MAE 0.006)** on the *same* noisy
-random-policy data. The original oracle failed because wall/obstacle
-bounces create heavy-tailed ratio outliers: a least-squares fit of the
-identical quantity scores R² = −35. Separately, a containment bug let
-passive boxes exit the arena, silently removing the interaction signal
-for the other two parameters. Lesson: *negative identifiability claims
-inherit every fragility of their oracle and their simulator.*
+CruelGridworld places three bodies on a bounded plane with per-episode gravity
+and friction randomization, process noise and discrete force actions.
+Observations are positions only. The later MuJoCo point-mass environment
+extends the inquiry to contact dynamics, but remains a separate validation tier.
 
-## 4. Step 1 — the information exists
+The belief model consumes same-episode windows of observations, differences and
+actions. It can receive raw sequences or engineered physical statistics. The
+protocol uses episode-grouped splits, declared seeds, held-out R² per parameter
+and preserved configs/checkpoints. Grouping by episode is essential: overlapping
+row-level windows can leak episode identity and manufacture apparent skill.
 
-With the environment fixed and pipelines made consistent, the closed-form
-estimator sets the reference: friction R² 0.865. The learned baseline —
-GRU on raw windows — scores **−0.49** on the same data, while its training
-loss decreases: it memorizes episodes rather than learning the
-dynamics→parameter map. The gap is not capacity; a linear model on one
-engineered feature outperforms the full pipeline.
+## 3. The first failure and the red-team review
 
-## 5. Step 2 — features unlock learning
+The first implementation produced a suspiciously perfect validation loss in an
+environment simple enough to support memorization. That result was not carried
+forward as evidence of generalization. The later review found a more serious
+problem in the negative conclusion about `friction_agent`: the supporting oracle
+was not versioned, its least-squares objective was dominated by collision
+outliers, and passive boxes could cross boundaries and remove signal needed by
+other parameters.
 
-We hand the GRU the estimator's sufficient statistics: gated decay ratio
-and its *running median*, excitation, distances, box-acceleration
-projections onto attractor directions, inverse-square regressors, aligned
-actions (27 dims). Same model, same data: gravity **+0.43**,
-friction_agent **+0.22**, friction_box **+0.09** (from −0.05/−0.49/−0.10).
-Two measured failure modes en route: (i) a single mis-aligned action index
-nullifies every ratio (and a test fixture can bake in the same bug); (ii)
-an *evidence-length bound*: the target's std (0.025) lies below the
-optimal estimator's window-level error at 18 steps (0.043) — SNR < 1
-means no learner can go positive at that window; 38-step windows reach
-signal scale.
+The response was reconstruction, not cosmetic repair. The environment gained
+containment tests; normalization and data fingerprints became explicit; windows
+and splits were reviewed; the oracle was committed as a robust median-based
+estimator with excitation and collision filters; and deprecated claims were
+marked as rebased or retracted. The full record is maintained in
+[`ERRORS_AND_CORRECTIONS.md`](../docs/ERRORS_AND_CORRECTIONS.md).
 
-## 6. Step 3 — collection amplifies
+The historical run reported R² = 0.865 and MAE = 0.006 for the robust oracle.
+The later recorded audit reached R² = 0.835426 and MAE = 0.006753 on a defined
+400-episode execution. The figures support the same qualitative lesson - useful
+friction signal exists in this regime - but are not interchangeable. Until the
+episode population and exact protocol are reconciled, the historical figure is
+not presented as a current reproduced metric.
 
-An information-seeking policy (oscillating dash for excitation; box-stir
-for interaction signal) raises belief quality **+39%** (mean R² 0.246 →
-0.341; gravity 0.67) with the model and training held fixed. The first
-policy version dashed along a fixed line; when that line crossed an
-*unobservable* obstacle it struck it repeatedly, corrupting the episode's
-median — episode-level R² collapsed to 0.23 with near-unchanged MAE, a
-heavy-tail signature — and belief training on that data silently failed.
-Random walks do not repeat their mistakes; deterministic
-information-seekers do. A golden-angle rosette rotation restores
-robustness. We name the requirement *anti-fragility to unobservables*.
+## 4. Step 1 - the information exists
 
-## 7. The thesis transfers: MuJoCo contact physics
+The robust oracle is the first evidence that useful friction signal is present
+in the recorded toy regime. The historical ledger reports R² = 0.865, while
+the dated 2026-07-21 rerun reports R² = 0.835426 and MAE = 0.006753. This is a
+reference estimator, not a learned world model and not evidence of broad
+generalization.
 
-Random policy + generic statistics: R² ≈ 0 on all parameters (332
-episodes). Analysis explains why and what is identifiable at all: the
-actuated agent rides slide joints (gravity absorbed by the joint; normal
-force ≈ 0 → it slides nearly frictionless), so only the *boxes* feel
-friction; Coulomb friction decelerates linearly (ratio features are the
-wrong model class); and gravity enters box dynamics only through the μ·g
-product — *gravity alone is structurally unidentifiable*, an exclusion we
-make with a measurement rather than by assertion. A COAST/PUSH policy
-(no-op actions manufacture free sliding; box-directed pushes manufacture
-contacts) plus aligned-impulse features (head-on contacts only; glancing
-hits confound geometry with mass at R² −0.27) yields learned beliefs of
-**friction +0.28, mass +0.11** at 1048 episodes.
+The historical raw-GRU comparison remains part of the investigation, but its
+exact metric is not promoted until the matching dataset, split and checkpoint
+are reconciled with the audit. The durable conclusion is narrower: an available
+signal does not guarantee that a generic learned representation uses it.
+
+## 5. Step 2 - features unlock learning
+
+The B10 audit reproduced a configuration combining physical statistics,
+distributional prediction and contrastive training. At window 40 it produced
+held-out R² values of 0.4286 for gravity, 0.2172 for `friction_agent` and 0.0928
+for `friction_box`. The engineered inputs include decay-ratio summaries,
+excitation, distances, acceleration projections and aligned actions.
+
+This is evidence for the reproduced configuration, not an isolated feature
+ablation. The raw comparison changes more than the feature set, so it cannot
+establish that features alone caused the gain. The next experiment is a
+factorial ablation. Recorded failure modes also remain part of the chapter:
+misaligned action indexing can nullify a ratio statistic, and short windows can
+fall below the estimator's signal-to-noise scale.
+
+## 6. Step 3 - collection amplifies
+
+The active-versus-random audit measures collection as part of the experimental
+system. With the recorded collection base and two training seeds, the aggregate
+improvement was 38.42% and 45.26%, for a mean of 41.80%. `friction_box` did not
+show a corresponding mean gain. This is a contextual result, not a universal
+active-learning claim; additional independent collections are required.
+
+The first deterministic policy also exposed a methodological limit. When its
+fixed trajectory met an unobserved obstacle, it repeated the collision and
+contaminated its own evidence. A rosette-style rotation was introduced to avoid
+that pattern. The lesson is retained as a design requirement: an informative
+policy must be robust to variables it does not observe.
+
+## 7. MuJoCo contact physics: a validation frontier
+
+MuJoCo extends the question to contact dynamics, but it is not currently a
+reproduced result. The repository environment used in the 2026-07-21 audit does
+not declare or pin the MuJoCo dependency. Consequently, historical values for
+friction and mass are retained only as provenance and are not presented as final
+evidence.
+
+The analysis remains useful as a hypothesis for the next validation: slide
+joints can absorb gravity for the actuated body, box dynamics can make the
+product μ·g more directly observable than gravity alone, and contact geometry
+can confound mass estimation. COAST/PUSH collection and aligned-impulse features
+must be rerun in a pinned environment before this chapter can advance from
+validation frontier to result.
 
 ## 8. Related work
 
 Belief-style system identification: RMA (Kumar et al. 2021), VariBAD
 (Zintgraf et al. 2020), CRAFT (2025). Active system identification: ASID
-(Memmel et al. 2024), SPI-Active (2025) — our policies replace the Fisher
+(Memmel et al. 2024), SPI-Active (2025) - our policies replace the Fisher
 objective with measured information-rate proxies. Self-predictive
 stability: BYOL/SimSiam analyses, Ni et al. (2024); our world-model recipe
 uses VICReg-style regularization plus prediction grounding. Contrastive
@@ -149,13 +169,14 @@ retraction, failure ledger, and structural identifiability analysis.
 Two synthetic environments; no visual observations; policies are designed
 (greedy on measured proxies), not learned; the world model still sits
 2.3× above its linear information ceiling on MuJoCo; long-horizon error is
-floored by process noise. Mass identification (+0.11) remains weak —
+floored by process noise. Mass identification (+0.11) remains weak -
 contact events are sparse even under PUSH phases.
 
 ## 10. Reproducibility
 
 Everything in this paper maps to a committed artifact:
-github.com/cesaremcasa/Atlas.WM (v4.0.0 tag + v4.1 line): scripts (oracle,
-policies, feature builders, trainers), seeded configs, 196 tests including
-regression locks on the oracle score, the information advantage, and the
-training canary. `docs/RESULTS.md` is the claim-by-claim evidence ledger.
+github.com/cesaremcasa/Atlas.WM (v4.0.0 tag + post-release line): scripts,
+policies, feature builders, trainers, seeded configs and tests. The 2026-07-21
+audit passed 186 tests on Python 3.11; MuJoCo tests were unavailable in that
+environment. `docs/RESULTS.md`, the reproduction report and the correction
+ledger are the claim-by-claim evidence record.

@@ -1,0 +1,23 @@
+{
+  "random_raw_w20_seed42": {
+    "mean_r2": -0.21196666666666666,
+    "n_episodes": 63,
+    "n_windows": 3061,
+    "r2": {
+      "gravity": -0.0506,
+      "friction_agent": -0.4901,
+      "friction_box": -0.0952
+    }
+  },
+  "random_engineered_w40_seed42": {
+    "mean_r2": -0.3622666666666667,
+    "n_episodes": 42,
+    "n_windows": 2001,
+    "r2": {
+      "gravity": -0.5887,
+      "friction_agent": -0.8253,
+      "friction_box": 0.3272
+    }
+  },
+  "note": "Valores impressos com quatro casas por scripts/probe_physics.py. O ledger B10 compara este ridge probe raw com o head supervisionado engineered, portanto não é uma comparação de métrica idêntica."
+}

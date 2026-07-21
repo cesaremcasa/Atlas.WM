@@ -1,7 +1,7 @@
-# Archive — Quarantined v2.0 Artifacts
+# Archive - Quarantined v2.0 Artifacts
 
 **Baseline commit:** `7dd1f37867804bbc436d89021b001833aa0b3001` (v2.0 tag)
-**Quarantined by:** Block 1 — Repository Hygiene & Quarantine
+**Quarantined by:** Block 1 - Repository Hygiene & Quarantine
 **Policy:** Files in this directory are frozen. They are NOT on the Python import path.
 Do not import from `archive/` in production code. Do not modify these files.
 
