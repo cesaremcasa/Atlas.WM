@@ -1,0 +1,15 @@
+{
+  "claim": "COAST/PUSH MuJoCo belief: friction R2 +0.28, mass R2 +0.11",
+  "fresh_result": null,
+  "reason": "The Python package 'mujoco' is absent from the Python 3.11 uv environment and is not declared or version-pinned in pyproject.toml or uv.lock.",
+  "smoke_command": "uv run --python 3.11 python -c 'import mujoco'",
+  "smoke_error": "ModuleNotFoundError: No module named 'mujoco'",
+  "test_command": "uv run --python 3.11 pytest -q tests/test_mujoco_pointmass.py -ra",
+  "test_result": "SKIPPED [1] tests/test_mujoco_pointmass.py:6: could not import 'mujoco': No module named 'mujoco' (pytest exit 5: no tests collected)",
+  "not_attempted": [
+    "No system package was installed.",
+    "No global configuration was changed.",
+    "No arbitrary unpinned mujoco wheel was introduced.",
+    "No historical MuJoCo metric was presented as a fresh result."
+  ]
+}

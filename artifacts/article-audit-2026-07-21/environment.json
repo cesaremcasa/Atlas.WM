@@ -1,0 +1,21 @@
+{
+  "branch": "main",
+  "commit": "db1016664fada226bdcfbe4167b60fdbc63f6ccd",
+  "macos_build": "25F80",
+  "macos_version": "26.5.1",
+  "machine": "arm64",
+  "python": "3.11.15",
+  "pytorch": "2.12.1",
+  "pytest": {
+    "command": "uv run --python 3.11 pytest -q",
+    "passed": 186,
+    "exit_code": 0
+  },
+  "mujoco": {
+    "available": false,
+    "error": "ModuleNotFoundError: No module named 'mujoco'",
+    "declared_in_pyproject_or_uv_lock": false,
+    "targeted_test": "SKIPPED [1] tests/test_mujoco_pointmass.py:6: could not import 'mujoco': No module named 'mujoco'",
+    "targeted_test_exit_code": 5
+  }
+}

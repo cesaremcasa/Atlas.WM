@@ -1,0 +1,7 @@
+_base: "../../../configs/experiments/v3_variable_physics.yaml"
+
+data:
+  data_dir: "artifacts/article-audit-2026-07-21/gridworld/active/processed"
+
+checkpointing:
+  checkpoint_dir: "artifacts/article-audit-2026-07-21/gridworld/checkpoints"
