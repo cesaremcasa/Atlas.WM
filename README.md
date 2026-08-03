@@ -12,7 +12,7 @@ with *architectural* guarantees; every claim in this repository is backed by
 a committed script, a reproducible number, and a regression test - including
 two public retractions of v3.x findings that did not survive re-verification.
 
-**Author:** Cesar Augusto · **v4.0.0** (2026-07-04, PRs #25–#44)
+**Author:** Cesar Augusto · **v4.0.0** (2026-07-04, PRs #25 to #44)
 
 Evolução e verificação do projeto: [`WIKI.md`](WIKI.md).
 Papers e pesquisas de apoio do futuro agente: `AI Search/Papers/` e
@@ -38,12 +38,12 @@ limits: [`docs/RESULTS.md`](docs/RESULTS.md).
 | Component | Enforcement |
 |---|---|
 | `z_static_immutable` | hard passthrough in dynamics (AD-2) + optional cross-episode anchor (B9) |
-| `z_static_slow` | drift-penalized residual; optionally conditioned on a **causal physics belief** (GRU over engineered dynamics features, B10–B12) |
+| `z_static_slow` | drift-penalized residual; optionally conditioned on a **causal physics belief** (GRU over engineered dynamics features, B10 to B12) |
 | `z_dynamic` | residual MLP or **dissipative symplectic (q,p) head** (B13) |
 | `z_controllable` | action-conditioned (actions enter *only* here - architectural routing) |
 
 Training: VICReg-regularized self-predictive objective + prediction
-grounding + K-step self-fed rollouts (B7–B8). Environments: `CruelGridworld`
+grounding + K-step self-fed rollouts (B7 to B8). Environments: `CruelGridworld`
 (toy, 2D nonlinear gravity) and `MujocoPointMass` (real contact physics),
 with random or information-seeking data collection (B11).
 
