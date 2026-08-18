@@ -31,7 +31,16 @@ WHEEL_NAME = f"atlas_wm-{VERSION}-py3-none-any.whl"
 SDIST_NAME = f"atlas_wm-{VERSION}.tar.gz"
 SOURCE_ALLOWLIST = ("pyproject.toml", "README.md", "LICENSE", "CHANGELOG.md", "src/atlas_wm")
 SOURCE_TOP_LEVEL = frozenset(SOURCE_ALLOWLIST[:-1])
+CONTROL_FILES = (
+    "pyproject.toml",
+    "requirements.lock",
+    "scripts/build_release.py",
+    "scripts/generate_sbom.py",
+    "uv.lock",
+)
 EXPECTED_PYTHON = (3, 11, 15)
+ARTIFACT_NAMES = (WHEEL_NAME, SDIST_NAME, "sbom.json")
+STAGING_NAMES = frozenset((*ARTIFACT_NAMES, "SHA256SUMS"))
 PASSTHROUGH_ENV = frozenset(
     {
         "PATH",
@@ -90,12 +99,52 @@ def _assert_python() -> None:
 
 
 def _git(repo_root: Path, *args: str, check: bool = True) -> subprocess.CompletedProcess[bytes]:
+    # GIT_DIR/GIT_WORK_TREE and user/system config can redirect all Git
+    # authority away from repo_root. Keep only path/locale settings needed by
+    # Git and explicitly disable ambient config and prompts.
+    env = {
+        key: value
+        for key, value in os.environ.items()
+        if key in {"PATH", "LANG", "LC_ALL", "LC_CTYPE"}
+    }
+    env.setdefault("PATH", os.defpath)
+    env.update(
+        {
+            "GIT_CONFIG_NOSYSTEM": "1",
+            "GIT_CONFIG_GLOBAL": os.devnull,
+            "GIT_TERMINAL_PROMPT": "0",
+        }
+    )
     return subprocess.run(
-        ["git", "-C", str(repo_root), *args],
+        ["git", "--no-pager", "-C", str(repo_root), *args],
         check=check,
+        env=env,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )
+
+
+def _head_blob(repo_root: Path, relative: str) -> bytes:
+    return _git(repo_root, "show", f"HEAD:{relative}").stdout
+
+
+def _assert_git_authority(repo_root: Path) -> None:
+    expected_root = repo_root.resolve()
+    actual_root = Path(
+        _git(repo_root, "rev-parse", "--show-toplevel").stdout.decode().strip()
+    ).resolve()
+    if actual_root != expected_root:
+        raise ValueError(f"Git repository mismatch: expected {expected_root}, got {actual_root}")
+    head = _git(repo_root, "rev-parse", "--verify", "HEAD^{commit}").stdout.decode().strip()
+    if not re.fullmatch(r"[0-9a-f]{40}", head):
+        raise ValueError(f"Git HEAD is not a full commit: {head!r}")
+
+
+def _assert_control_files(repo_root: Path) -> None:
+    for relative in CONTROL_FILES:
+        path = repo_root / relative
+        if not path.is_file() or path.read_bytes() != _head_blob(repo_root, relative):
+            raise ValueError(f"control file is not identical to HEAD: {relative}")
 
 
 def _tracked_source_files(repo_root: Path) -> list[str]:
@@ -175,15 +224,16 @@ def _copy_allowlist(repo_root: Path, source_root: Path, tracked_files: list[str]
     for relative in tracked_files:
         destination = source_root / relative
         destination.parent.mkdir(parents=True, exist_ok=True)
-        blob = _git(repo_root, "show", f"HEAD:{relative}").stdout
-        destination.write_bytes(blob)
+        destination.write_bytes(_head_blob(repo_root, relative))
     # Setuptools does not include CHANGELOG.md in an sdist by default.  Keep
     # the Git source allowlist strict while supplying this deterministic,
     # build-only manifest so the release notes are present in the archive.
     (source_root / "MANIFEST.in").write_text("include CHANGELOG.md\nexclude MANIFEST.in\n")
 
 
-def _run_build(repo_root: Path, source_root: Path, output_dir: Path, env: dict[str, str]) -> None:
+def _run_build(
+    source_root: Path, output_dir: Path, build_constraints: Path, env: dict[str, str]
+) -> None:
     _assert_python()
     subprocess.run(
         [
@@ -198,7 +248,7 @@ def _run_build(repo_root: Path, source_root: Path, output_dir: Path, env: dict[s
             "--python",
             sys.executable,
             "--build-constraints",
-            str(repo_root / "requirements.lock"),
+            str(build_constraints),
             "--require-hashes",
         ],
         check=True,
@@ -405,6 +455,46 @@ def _write_checksums(paths: Iterable[Path], output: Path) -> None:
     output.write_text("\n".join(lines) + "\n")
 
 
+def _staging_hashes(output_dir: Path) -> dict[str, str]:
+    entries = list(output_dir.iterdir())
+    if {path.name for path in entries} != STAGING_NAMES or any(
+        path.is_symlink() or not path.is_file() for path in entries
+    ):
+        raise ValueError("staging contains files outside the release allowlist")
+    pattern = re.compile(r"^(?P<digest>[0-9a-f]{64})  (?P<name>[^\s]+)$")
+    checksums: dict[str, str] = {}
+    for line in (output_dir / "SHA256SUMS").read_text().splitlines():
+        match = pattern.fullmatch(line)
+        if match is None or match.group("name") not in ARTIFACT_NAMES:
+            raise ValueError(f"invalid SHA256SUMS line: {line!r}")
+        name = match.group("name")
+        if name in checksums:
+            raise ValueError(f"duplicate SHA256SUMS member: {name}")
+        checksums[name] = match.group("digest")
+    if set(checksums) != set(ARTIFACT_NAMES):
+        raise ValueError("SHA256SUMS does not enumerate exactly the release artifacts")
+    computed = {name: _sha256(output_dir / name) for name in ARTIFACT_NAMES}
+    if checksums != computed:
+        raise ValueError("SHA256SUMS does not match downloaded artifact bytes")
+    return {**computed, "SHA256SUMS": _sha256(output_dir / "SHA256SUMS")}
+
+
+def compare_staging(repo_root: Path, first: Path, second: Path) -> dict[str, str]:
+    """Validate and compare two downloaded platform staging directories."""
+    validate_staging(repo_root, first)
+    validate_staging(repo_root, second)
+    first_hashes = _staging_hashes(first)
+    second_hashes = _staging_hashes(second)
+    if first_hashes != second_hashes:
+        raise ValueError(
+            f"cross-platform artifact hashes differ: {first_hashes} != {second_hashes}"
+        )
+    for name in (*ARTIFACT_NAMES, "SHA256SUMS"):
+        if (first / name).read_bytes() != (second / name).read_bytes():
+            raise ValueError(f"cross-platform artifact bytes differ: {name}")
+    return first_hashes
+
+
 def _expected_members(repo_root: Path) -> tuple[set[str], set[str]]:
     tracked_files = _tracked_source_files(repo_root)
     top_files = sorted(SOURCE_TOP_LEVEL)
@@ -444,24 +534,13 @@ def _expected_members(repo_root: Path) -> tuple[set[str], set[str]]:
 
 
 def validate_staging(repo_root: Path, output_dir: Path) -> None:
-    expected_staging = {WHEEL_NAME, SDIST_NAME, "sbom.json", "SHA256SUMS"}
-    entries = list(output_dir.iterdir())
-    actual_staging = {path.name for path in entries}
-    if actual_staging != expected_staging:
-        raise ValueError(f"unexpected release staging contents: {sorted(actual_staging)}")
-    if any(path.is_symlink() or not path.is_file() for path in entries):
-        raise ValueError("release staging contains a non-regular member")
+    _staging_hashes_before = _staging_hashes(output_dir)
     expected_wheel, expected_sdist = _expected_members(repo_root)
     _archive_members(output_dir / WHEEL_NAME, expected_wheel)
     _archive_members(output_dir / SDIST_NAME, expected_sdist)
     _scan_payload("sbom.json", (output_dir / "sbom.json").read_bytes())
-    checksum_lines = (output_dir / "SHA256SUMS").read_text().splitlines()
-    expected_lines = [
-        f"{_sha256(output_dir / name)}  {name}"
-        for name in sorted((WHEEL_NAME, SDIST_NAME, "sbom.json"))
-    ]
-    if checksum_lines != expected_lines:
-        raise ValueError("SHA256SUMS does not match staged artifacts")
+    if _staging_hashes(output_dir) != _staging_hashes_before:
+        raise ValueError("staging changed while being validated")
 
 
 def build_artifacts(repo_root: Path, output_dir: Path) -> dict[str, str]:
@@ -469,7 +548,9 @@ def build_artifacts(repo_root: Path, output_dir: Path) -> dict[str, str]:
     _assert_python()
     repo_root = repo_root.resolve()
     output_dir = output_dir.resolve()
+    _assert_git_authority(repo_root)
     _assert_clean_tree(repo_root)
+    _assert_control_files(repo_root)
     tracked_files = _tracked_source_files(repo_root)
     if output_dir == repo_root or repo_root in output_dir.parents:
         raise ValueError("release staging must be outside the repository")
@@ -479,14 +560,27 @@ def build_artifacts(repo_root: Path, output_dir: Path) -> dict[str, str]:
     with tempfile.TemporaryDirectory(prefix="atlas-release-build-") as temp_root:
         temp_root_path = Path(temp_root)
         source_root = temp_root_path / "source"
+        controls_root = temp_root_path / "controls"
         source_root.mkdir()
+        controls_root.mkdir()
         _copy_allowlist(repo_root, source_root, tracked_files)
-        _run_build(repo_root, source_root, output_dir, _sanitized_env(temp_root_path))
+        for relative in ("pyproject.toml", "requirements.lock"):
+            control_path = controls_root / relative
+            control_path.parent.mkdir(parents=True, exist_ok=True)
+            control_path.write_bytes(_head_blob(repo_root, relative))
+        _run_build(
+            source_root,
+            output_dir,
+            controls_root / "requirements.lock",
+            _sanitized_env(temp_root_path),
+        )
+        write_sbom(
+            controls_root / "pyproject.toml",
+            controls_root / "requirements.lock",
+            output_dir / "sbom.json",
+        )
     _canonicalize_wheel(output_dir / WHEEL_NAME)
     _canonicalize_sdist(output_dir / SDIST_NAME)
-    write_sbom(
-        repo_root / "pyproject.toml", repo_root / "requirements.lock", output_dir / "sbom.json"
-    )
     _write_checksums(
         [output_dir / WHEEL_NAME, output_dir / SDIST_NAME, output_dir / "sbom.json"],
         output_dir / "SHA256SUMS",
@@ -497,10 +591,22 @@ def build_artifacts(repo_root: Path, output_dir: Path) -> dict[str, str]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--output-dir", type=Path, required=True)
+    parser.add_argument("--output-dir", type=Path)
+    parser.add_argument("--validate-dir", type=Path)
     parser.add_argument("--repo-root", type=Path, default=Path(__file__).resolve().parents[1])
     args = parser.parse_args()
-    hashes = build_artifacts(args.repo_root, args.output_dir)
+    if (args.output_dir is None) == (args.validate_dir is None):
+        parser.error("exactly one of --output-dir or --validate-dir is required")
+    repo_root = args.repo_root.resolve()
+    _assert_python()
+    _assert_git_authority(repo_root)
+    _assert_clean_tree(repo_root)
+    _assert_control_files(repo_root)
+    if args.validate_dir is not None:
+        validate_staging(repo_root, args.validate_dir.resolve())
+        hashes = _staging_hashes(args.validate_dir.resolve())
+    else:
+        hashes = build_artifacts(repo_root, args.output_dir)
     for name, digest in hashes.items():
         print(f"{digest}  {name}")
 

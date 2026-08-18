@@ -28,5 +28,6 @@ sbom:
 	@echo "SBOM written to sbom.json"
 
 release-staging:
-	uv run --locked --python 3.11 --extra dev python scripts/build_release.py --output-dir dist/release-v4.0.1
-	@echo "Release staging written to dist/release-v4.0.1"
+	@stage="$${RELEASE_OUTPUT_DIR:-$$(mktemp -d "$${TMPDIR:-/tmp}/atlas-release.XXXXXX")}"; \
+	uv run --locked --python 3.11.15 --extra dev python scripts/build_release.py --output-dir "$$stage"; \
+	echo "Release staging written to $$stage"

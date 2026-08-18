@@ -6,6 +6,7 @@ import gzip
 import io
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tarfile
@@ -21,6 +22,7 @@ from build_release import (
     WHEEL_NAME,
     _archive_members,
     build_artifacts,
+    compare_staging,
     validate_staging,
 )
 
@@ -214,6 +216,46 @@ def test_untracked_source_cannot_enter_release_build(tmp_path):
             build_artifacts(ROOT, tmp_path / "staging")
     finally:
         stale.unlink()
+
+
+def test_git_authority_ignores_external_git_dir(tmp_path, monkeypatch):
+    fake_git_dir = tmp_path / "redirect.git"
+    subprocess.run(["git", "init", "--bare", str(fake_git_dir)], check=True, capture_output=True)
+    monkeypatch.setenv("GIT_DIR", str(fake_git_dir))
+    monkeypatch.setenv("GIT_WORK_TREE", str(tmp_path))
+    staging = tmp_path / "staging"
+    build_artifacts(ROOT, staging)
+    assert (staging / WHEEL_NAME).is_file()
+
+
+def test_assume_unchanged_control_file_cannot_contaminate_build(tmp_path):
+    path = ROOT / "pyproject.toml"
+    original = path.read_bytes()
+    path.write_bytes(original.replace(b'version = "4.0.1"', b'version = "9.9.9"'))
+    subprocess.run(
+        ["git", "-C", str(ROOT), "update-index", "--assume-unchanged", "pyproject.toml"],
+        check=True,
+    )
+    try:
+        with pytest.raises(ValueError, match="control file.*HEAD"):
+            build_artifacts(ROOT, tmp_path / "staging")
+    finally:
+        path.write_bytes(original)
+        subprocess.run(
+            ["git", "-C", str(ROOT), "update-index", "--no-assume-unchanged", "pyproject.toml"],
+            check=True,
+        )
+
+
+def test_compare_recomputes_downloaded_artifact_bytes(tmp_path):
+    first = tmp_path / "first"
+    second = tmp_path / "second"
+    build_artifacts(ROOT, first)
+    shutil.copytree(first, second)
+    wheel = second / WHEEL_NAME
+    wheel.write_bytes(wheel.read_bytes() + b"tampered")
+    with pytest.raises(ValueError, match="SHA256SUMS|bytes"):
+        compare_staging(ROOT, first, second)
 
 
 def test_wheel_and_sdist_install_in_clean_locked_envs(tmp_path):

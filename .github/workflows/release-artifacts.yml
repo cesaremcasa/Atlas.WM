@@ -97,21 +97,21 @@ jobs:
         env:
           RELEASE_ROOT: ${{ runner.temp }}/release-artifacts
         run: |
-          python - <<'PY'
+          uv run --locked --python 3.11.15 --extra dev python - <<'PY'
           import os
+          import sys
           from pathlib import Path
 
+          sys.path.insert(0, "scripts")
+          from build_release import compare_staging
+
           root = Path(os.environ["RELEASE_ROOT"])
-          staging = sorted(root.glob("release-*/SHA256SUMS"))
-          if len(staging) != 2:
-              raise SystemExit(f"expected Linux and macOS staging, found {staging}")
-          expected = staging[0].read_bytes()
-          if any(path.read_bytes() != expected for path in staging[1:]):
-              raise SystemExit("Linux/macOS SHA256SUMS differ")
-          for path in staging:
-              lines = path.read_text().splitlines()
-              if len(lines) != 3 or any(len(line.split()) != 2 for line in lines):
-                  raise SystemExit(f"invalid SHA256SUMS: {path}")
+          staging = sorted(path for path in root.iterdir() if path.is_dir())
+          expected_dirs = {"release-macos-15", "release-ubuntu-latest"}
+          if {path.name for path in staging} != expected_dirs:
+              raise SystemExit(f"unexpected platform staging: {staging}")
+          hashes = compare_staging(Path.cwd(), staging[0], staging[1])
+          print("verified cross-platform artifact bytes and SHA256:", hashes)
           PY
       - name: Verify clean checkout
         run: test -z "$(git status --porcelain --untracked-files=all)"
