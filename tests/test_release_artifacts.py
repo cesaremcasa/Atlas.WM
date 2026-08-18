@@ -7,12 +7,15 @@ import io
 import json
 import os
 import subprocess
+import sys
 import tarfile
 import zipfile
 from pathlib import Path
 
 import pytest
 from build_release import (
+    EXPECTED_PYTHON,
+    PASSTHROUGH_ENV,
     SDIST_NAME,
     VERSION,
     WHEEL_NAME,
@@ -25,27 +28,24 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def _isolated_env(root: Path) -> dict[str, str]:
-    env = dict(os.environ)
-    for key in (
-        "HOME",
-        "USERPROFILE",
-        "VIRTUAL_ENV",
-        "PYTHONHOME",
-        "PYTHONPATH",
-        "UV_PROJECT_ENVIRONMENT",
-    ):
-        env.pop(key, None)
+    env = {key: value for key, value in os.environ.items() if key in PASSTHROUGH_ENV}
+    env.setdefault("PATH", os.defpath)
     root.mkdir(parents=True, exist_ok=True)
     home = root / "home"
     cache = root / "cache"
     config = root / "config"
+    tmp = root / "tmp"
     home.mkdir()
     cache.mkdir()
     config.mkdir()
+    tmp.mkdir()
     env.update(
         {
             "HOME": str(home),
             "USERPROFILE": str(home),
+            "TMPDIR": str(tmp),
+            "TMP": str(tmp),
+            "TEMP": str(tmp),
             "XDG_CACHE_HOME": str(cache),
             "XDG_CONFIG_HOME": str(config),
             "UV_CACHE_DIR": str(cache / "uv"),
@@ -64,7 +64,9 @@ def _isolated_env(root: Path) -> dict[str, str]:
 def _clean_install(staging: Path, artifact_name: str, env_dir: Path) -> None:
     python = env_dir / "bin/python"
     env = _isolated_env(env_dir.parent / f"{env_dir.name}-subprocess")
-    subprocess.run(["uv", "venv", "--python", "3.11", str(env_dir)], check=True, env=env)
+    if sys.version_info[:3] != EXPECTED_PYTHON:
+        raise AssertionError(f"tests require Python {EXPECTED_PYTHON}, got {sys.version_info[:3]}")
+    subprocess.run(["uv", "venv", "--python", sys.executable, str(env_dir)], check=True, env=env)
     subprocess.run(
         ["uv", "pip", "sync", "--python", str(python), str(ROOT / "requirements.lock")],
         check=True,
@@ -177,6 +179,41 @@ def test_archive_rejects_symlink_and_embedded_host_secret(tmp_path):
     _write_zip(secret, [("metadata.txt", b"token in /Users/host/project", None)])
     with pytest.raises(ValueError, match="forbidden host/secret"):
         _archive_members(secret)
+
+
+@pytest.mark.parametrize(
+    "credential",
+    (
+        b"github_pat_1234567890abcdefghij",
+        b"ghp_1234567890abcdefghij",
+        b"gho_1234567890abcdefghij",
+        b"ghu_1234567890abcdefghij",
+        b"ghs_1234567890abcdefghij",
+        b"ghr_1234567890abcdefghij",
+        b"glpat-1234567890abcdefghij",
+        b"npm_1234567890abcdefghij",
+        b"xoxb-1234567890",
+        b"sk-1234567890abcdefghij",
+        b"xai-1234567890abcdefghij",
+        b"AKIA1234567890ABCDEF",
+        b"-----BEGIN PRIVATE KEY-----",
+    ),
+)
+def test_archive_rejects_high_signal_credentials(tmp_path, credential):
+    archive = tmp_path / "credential.whl"
+    _write_zip(archive, [("metadata.txt", credential, None)])
+    with pytest.raises(ValueError, match="forbidden host/secret|high-signal secret"):
+        _archive_members(archive)
+
+
+def test_untracked_source_cannot_enter_release_build(tmp_path):
+    stale = ROOT / "src/atlas_wm/_release_stale_probe.py"
+    stale.write_text("# must not be packaged\n")
+    try:
+        with pytest.raises(ValueError, match="clean Git tree"):
+            build_artifacts(ROOT, tmp_path / "staging")
+    finally:
+        stale.unlink()
 
 
 def test_wheel_and_sdist_install_in_clean_locked_envs(tmp_path):

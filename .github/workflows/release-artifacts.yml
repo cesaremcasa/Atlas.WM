@@ -1,6 +1,19 @@
 name: release-artifacts
 
 on:
+  pull_request:
+    paths:
+      - ".github/workflows/release-artifacts.yml"
+      - "CHANGELOG.md"
+      - "LICENSE"
+      - "README.md"
+      - "pyproject.toml"
+      - "requirements.lock"
+      - "scripts/build_release.py"
+      - "scripts/generate_sbom.py"
+      - "src/atlas_wm/**"
+      - "tests/test_release_artifacts.py"
+      - "uv.lock"
   workflow_dispatch:
 
 permissions:
@@ -31,6 +44,8 @@ jobs:
           cache-dependency-glob: uv.lock
       - name: Install locked environment
         run: uv sync --locked --extra dev
+      - name: Verify clean checkout before build
+        run: test -z "$(git status --porcelain --untracked-files=all)"
       - name: Build and validate release artifacts
         run: uv run --locked --python 3.11 --extra dev python scripts/build_release.py --output-dir "$RUNNER_TEMP/atlas-release"
       - name: Upload release staging
@@ -63,6 +78,8 @@ jobs:
           cache-dependency-glob: uv.lock
       - name: Install locked environment
         run: uv sync --locked --extra dev
+      - name: Verify clean checkout before comparison
+        run: test -z "$(git status --porcelain --untracked-files=all)"
       - name: Download platform staging
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:

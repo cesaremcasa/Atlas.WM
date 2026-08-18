@@ -15,9 +15,9 @@ import hashlib
 import io
 import os
 import re
-import shutil
 import stat
 import subprocess
+import sys
 import tarfile
 import tempfile
 import zipfile
@@ -30,6 +30,20 @@ VERSION = "4.0.1"
 WHEEL_NAME = f"atlas_wm-{VERSION}-py3-none-any.whl"
 SDIST_NAME = f"atlas_wm-{VERSION}.tar.gz"
 SOURCE_ALLOWLIST = ("pyproject.toml", "README.md", "LICENSE", "CHANGELOG.md", "src/atlas_wm")
+SOURCE_TOP_LEVEL = frozenset(SOURCE_ALLOWLIST[:-1])
+EXPECTED_PYTHON = (3, 11, 15)
+PASSTHROUGH_ENV = frozenset(
+    {
+        "PATH",
+        "SSL_CERT_FILE",
+        "SSL_CERT_DIR",
+        "REQUESTS_CA_BUNDLE",
+        "CURL_CA_BUNDLE",
+        "LANG",
+        "LC_ALL",
+        "LC_CTYPE",
+    }
+)
 FORBIDDEN_TEXT = (
     "file://",
     "/Users/",
@@ -40,9 +54,8 @@ FORBIDDEN_TEXT = (
     "/tmp/",
     "/var/folders/",
     "-----BEGIN ",
-    "AKIA",
-    "ghp_",
-    "sk-",
+    "-----BEGIN RSA PRIVATE KEY-----",
+    "-----BEGIN OPENSSH PRIVATE KEY-----",
 )
 FORBIDDEN_MEMBERS = (
     "AI Search/",
@@ -56,30 +69,93 @@ FORBIDDEN_MEMBERS = (
     "tests/",
 )
 FORBIDDEN_SUFFIXES = (".npy", ".npz", ".pdf", ".safetensors", ".pt", ".pth")
-SECRET_RE = re.compile(rb"(?:AKIA[0-9A-Z]{16}|ghp_[A-Za-z0-9]{20,}|sk-[A-Za-z0-9]{20,})")
+SECRET_RE = re.compile(
+    rb"(?:"
+    rb"(?:AKIA|ASIA|AIDA|AROA|AGPA|A3T)[0-9A-Z]{16,17}|"
+    rb"github_pat_[A-Za-z0-9_]{20,}|"
+    rb"gh[opusr]_[A-Za-z0-9_]{20,}|"
+    rb"glpat-[A-Za-z0-9_-]{20,}|"
+    rb"npm_[A-Za-z0-9]{20,}|"
+    rb"xox[baprs]-[A-Za-z0-9-]{10,}|"
+    rb"(?:sk|xai)-[A-Za-z0-9_-]{20,}"
+    rb")"
+)
+
+
+def _assert_python() -> None:
+    if sys.version_info[:3] != EXPECTED_PYTHON:
+        actual = ".".join(str(part) for part in sys.version_info[:3])
+        expected = ".".join(str(part) for part in EXPECTED_PYTHON)
+        raise RuntimeError(f"release build requires Python {expected}, got {actual}")
+
+
+def _git(repo_root: Path, *args: str, check: bool = True) -> subprocess.CompletedProcess[bytes]:
+    return subprocess.run(
+        ["git", "-C", str(repo_root), *args],
+        check=check,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+
+
+def _tracked_source_files(repo_root: Path) -> list[str]:
+    result = _git(
+        repo_root,
+        "ls-tree",
+        "-r",
+        "-z",
+        "HEAD",
+        "--",
+        *SOURCE_ALLOWLIST,
+    )
+    files: list[str] = []
+    for record in result.stdout.split(b"\0"):
+        if not record:
+            continue
+        metadata, raw_path = record.split(b"\t", 1)
+        mode, kind, _object_id = metadata.decode("ascii").split()
+        relative = raw_path.decode("utf-8")
+        if kind != "blob" or mode != "100644":
+            raise ValueError(f"allowlisted Git member is not a regular file: {relative}")
+        if relative in SOURCE_TOP_LEVEL or relative.startswith("src/atlas_wm/"):
+            files.append(relative)
+    files.sort()
+    if set(files) & SOURCE_TOP_LEVEL != SOURCE_TOP_LEVEL:
+        missing = sorted(SOURCE_TOP_LEVEL - set(files))
+        raise ValueError(f"required Git release source is missing: {missing}")
+    if not any(relative.startswith("src/atlas_wm/") for relative in files):
+        raise ValueError("Git release source has no atlas_wm package files")
+    return files
+
+
+def _assert_clean_tree(repo_root: Path) -> None:
+    result = _git(repo_root, "status", "--porcelain=v1", "--untracked-files=all")
+    if result.stdout:
+        status = result.stdout.decode("utf-8", errors="replace").strip()
+        raise ValueError(f"release build requires a clean Git tree:\n{status}")
 
 
 def _sanitized_env(temp_root: Path) -> dict[str, str]:
-    env = {key: value for key, value in os.environ.items()}
-    for key in (
-        "HOME",
-        "USERPROFILE",
-        "VIRTUAL_ENV",
-        "PYTHONHOME",
-        "PYTHONPATH",
-        "UV_PROJECT_ENVIRONMENT",
-    ):
-        env.pop(key, None)
+    # Do not inherit credentials, package indexes, CI tokens, or arbitrary
+    # config. PATH is needed to resolve uv; CA and locale variables are the
+    # only other host settings that can be required for a package download.
+    env = {key: value for key, value in os.environ.items() if key in PASSTHROUGH_ENV}
+    env.setdefault("PATH", os.defpath)
     home = temp_root / "home"
     cache = temp_root / "cache"
     config = temp_root / "config"
+    tmp = temp_root / "tmp"
     home.mkdir()
     cache.mkdir()
     config.mkdir()
+    tmp.mkdir()
     env.update(
         {
             "HOME": str(home),
             "USERPROFILE": str(home),
+            "TMPDIR": str(tmp),
+            "TMP": str(tmp),
+            "TEMP": str(tmp),
             "XDG_CACHE_HOME": str(cache),
             "XDG_CONFIG_HOME": str(config),
             "UV_CACHE_DIR": str(cache / "uv"),
@@ -95,28 +171,12 @@ def _sanitized_env(temp_root: Path) -> dict[str, str]:
     return env
 
 
-def _copy_allowlist(repo_root: Path, source_root: Path) -> None:
-    for relative in SOURCE_ALLOWLIST:
-        source = repo_root / relative
+def _copy_allowlist(repo_root: Path, source_root: Path, tracked_files: list[str]) -> None:
+    for relative in tracked_files:
         destination = source_root / relative
-        if source.is_symlink() or not source.exists():
-            raise ValueError(f"allowlisted source is missing or symlinked: {relative}")
-        if source.is_dir():
-            for child in sorted(source.rglob("*")):
-                if child.is_symlink():
-                    raise ValueError(f"symlinked source member: {child.relative_to(repo_root)}")
-                if child.is_dir() or child.name == "__pycache__" or child.suffix == ".pyc":
-                    continue
-                if not child.is_file():
-                    raise ValueError(f"non-regular source member: {child.relative_to(repo_root)}")
-                target = source_root / child.relative_to(repo_root)
-                target.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copyfile(child, target)
-        else:
-            if not source.is_file():
-                raise ValueError(f"non-regular allowlisted source member: {relative}")
-            destination.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copyfile(source, destination)
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        blob = _git(repo_root, "show", f"HEAD:{relative}").stdout
+        destination.write_bytes(blob)
     # Setuptools does not include CHANGELOG.md in an sdist by default.  Keep
     # the Git source allowlist strict while supplying this deterministic,
     # build-only manifest so the release notes are present in the archive.
@@ -124,6 +184,7 @@ def _copy_allowlist(repo_root: Path, source_root: Path) -> None:
 
 
 def _run_build(repo_root: Path, source_root: Path, output_dir: Path, env: dict[str, str]) -> None:
+    _assert_python()
     subprocess.run(
         [
             "uv",
@@ -134,6 +195,8 @@ def _run_build(repo_root: Path, source_root: Path, output_dir: Path, env: dict[s
             "--no-create-gitignore",
             "--out-dir",
             str(output_dir),
+            "--python",
+            sys.executable,
             "--build-constraints",
             str(repo_root / "requirements.lock"),
             "--require-hashes",
@@ -165,6 +228,15 @@ def _scan_payload(name: str, payload: bytes) -> None:
             raise ValueError(f"forbidden host/secret marker {marker!r} in {name!r}")
     if SECRET_RE.search(payload):
         raise ValueError(f"high-signal secret marker in {name!r}")
+
+
+def _canonical_payload(name: str, payload: bytes) -> bytes:
+    """Normalize text payloads whose backend may vary line endings/order."""
+    if name.endswith((".cfg", ".md", ".py", ".pyproject", ".txt", ".toml")):
+        payload = payload.replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+    if name.endswith("/SOURCES.txt"):
+        payload = b"\n".join(sorted(payload.splitlines())) + b"\n"
+    return payload
 
 
 def _inspect_zip(path: Path, expected: set[str] | None) -> list[str]:
@@ -247,13 +319,22 @@ def _canonicalize_wheel(path: Path) -> None:
             mode = (info.external_attr >> 16) & 0o170000
             if mode and mode not in (stat.S_IFREG, stat.S_IFDIR):
                 raise ValueError(f"symlink/special ZIP member: {info.filename!r}")
-            members.append((info.filename, source.read(info.filename), info.is_dir()))
+            members.append(
+                (
+                    info.filename,
+                    _canonical_payload(info.filename, source.read(info.filename)),
+                    info.is_dir(),
+                )
+            )
     output = io.BytesIO()
     with zipfile.ZipFile(output, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as archive:
         for name, data, is_dir in sorted(members):
             info = zipfile.ZipInfo(name, date_time=(1980, 1, 1, 0, 0, 0))
             info.compress_type = zipfile.ZIP_STORED if is_dir else zipfile.ZIP_DEFLATED
             info.create_system = 3
+            info.create_version = 20
+            info.extract_version = 20
+            info.flag_bits = 0
             info.external_attr = (0o040755 if is_dir else 0o100644) << 16
             info.internal_attr = 0
             info.extra = b""
@@ -298,7 +379,7 @@ def _canonicalize_sdist(path: Path) -> None:
                     data = source.extractfile(original)
                     if data is None:
                         raise ValueError(f"unable to read sdist member: {original.name}")
-                    payload = data.read()
+                    payload = _canonical_payload(original.name, data.read())
                     member.size = len(payload)
                     archive.addfile(member, io.BytesIO(payload))
                 else:
@@ -325,9 +406,10 @@ def _write_checksums(paths: Iterable[Path], output: Path) -> None:
 
 
 def _expected_members(repo_root: Path) -> tuple[set[str], set[str]]:
-    top_files = [relative for relative in SOURCE_ALLOWLIST if relative != "src/atlas_wm"]
-    package_files = sorted((repo_root / "src/atlas_wm").rglob("*.py"))
-    wheel_files = {str(path.relative_to(repo_root / "src")) for path in package_files}
+    tracked_files = _tracked_source_files(repo_root)
+    top_files = sorted(SOURCE_TOP_LEVEL)
+    package_files = [relative for relative in tracked_files if relative.startswith("src/atlas_wm/")]
+    wheel_files = {relative.removeprefix("src/") for relative in package_files}
     dist_info = f"atlas_wm-{VERSION}.dist-info"
     wheel_files.update(
         {
@@ -341,7 +423,7 @@ def _expected_members(repo_root: Path) -> tuple[set[str], set[str]]:
     root = f"atlas_wm-{VERSION}"
     sdist_files = {f"{root}/{relative}" for relative in top_files}
     sdist_files.update(f"{root}/{name}" for name in ("PKG-INFO", "setup.cfg"))
-    sdist_files.update(f"{root}/{path.relative_to(repo_root)}" for path in package_files)
+    sdist_files.update(f"{root}/{path}" for path in package_files)
     sdist_files.update(
         f"{root}/src/atlas_wm.egg-info/{name}"
         for name in (
@@ -384,8 +466,11 @@ def validate_staging(repo_root: Path, output_dir: Path) -> None:
 
 def build_artifacts(repo_root: Path, output_dir: Path) -> dict[str, str]:
     """Build one clean staging directory and return artifact hashes."""
+    _assert_python()
     repo_root = repo_root.resolve()
     output_dir = output_dir.resolve()
+    _assert_clean_tree(repo_root)
+    tracked_files = _tracked_source_files(repo_root)
     if output_dir == repo_root or repo_root in output_dir.parents:
         raise ValueError("release staging must be outside the repository")
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -395,7 +480,7 @@ def build_artifacts(repo_root: Path, output_dir: Path) -> dict[str, str]:
         temp_root_path = Path(temp_root)
         source_root = temp_root_path / "source"
         source_root.mkdir()
-        _copy_allowlist(repo_root, source_root)
+        _copy_allowlist(repo_root, source_root, tracked_files)
         _run_build(repo_root, source_root, output_dir, _sanitized_env(temp_root_path))
     _canonicalize_wheel(output_dir / WHEEL_NAME)
     _canonicalize_sdist(output_dir / SDIST_NAME)

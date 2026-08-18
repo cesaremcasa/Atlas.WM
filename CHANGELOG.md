@@ -18,9 +18,10 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   dependencies, emits SHA256 checksums, and excludes datasets, checkpoints,
   papers, host paths, and environment-specific files from artifacts. It now
   uses a fresh source allowlist, exact archive manifests, safe extraction,
-  and cross-platform canonical archive metadata.
+  cross-platform canonical archive metadata, and a clean tracked-HEAD gate.
 - The manual release-artifacts workflow builds on Linux and macOS and compares
-  the resulting artifact hashes before any release publication step.
+  the resulting artifact hashes before any release publication step; pull
+  requests touching release inputs run the same matrix automatically.
 
 ### Added (v4.1 - physics identification on the MuJoCo tier)
 
