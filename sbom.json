@@ -6354,6 +6354,23 @@
       "purl": "pkg:pypi/werkzeug@3.1.8",
       "type": "library",
       "version": "3.1.8"
+    },
+    {
+      "bom-ref": "pkg:pypi/wheel@0.48.0",
+      "name": "wheel",
+      "properties": [
+        {
+          "name": "uv:sha256",
+          "value": "3217dcc807155e45db462d7ef2431f5ddda0d7273b700d05a67b271ceb1287ab"
+        },
+        {
+          "name": "uv:sha256",
+          "value": "94800765601e9171bf5d58d066e640662842bcedcbab982b2c90787a2c987322"
+        }
+      ],
+      "purl": "pkg:pypi/wheel@0.48.0",
+      "type": "library",
+      "version": "0.48.0"
     }
   ],
   "dependencies": [
@@ -6379,15 +6396,15 @@
     "properties": [
       {
         "name": "atlas:pyproject-sha256",
-        "value": "ae21c6d6a6798e7c7978b0b11a0f4e4452b66f1e467534db962dcb4334cd78c0"
+        "value": "caf6f5b63128dee80c603b841549e72399b5dfd1990f3ff9fd08aa860639a117"
       },
       {
         "name": "atlas:requirements-lock-sha256",
-        "value": "7a1cb224e738aeba000eea14ad85b6e93905bef1c36ae3112a42cbe5252c9e92"
+        "value": "5e82f0b2367b28225557660b476d271730b1908805100b3dde0cf850b3e488c3"
       }
     ]
   },
-  "serialNumber": "urn:uuid:a5df0eab-1030-56c1-a158-9a4fbddfba34",
+  "serialNumber": "urn:uuid:4af04165-de19-5262-9c51-1696c4eb52ba",
   "specVersion": "1.6",
   "version": 1
 }

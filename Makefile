@@ -1,4 +1,4 @@
-.PHONY: install lint type test security ci-local sbom
+.PHONY: install lint type test security ci-local sbom release-staging
 
 install:
 	uv sync --extra dev
@@ -26,3 +26,7 @@ ci-local: lint type test security
 sbom:
 	python scripts/generate_sbom.py --project pyproject.toml --lock requirements.lock --output sbom.json
 	@echo "SBOM written to sbom.json"
+
+release-staging:
+	uv run --locked --python 3.11 --extra dev python scripts/build_release.py --output-dir dist/release-v4.0.1
+	@echo "Release staging written to dist/release-v4.0.1"

@@ -21,6 +21,15 @@ python scripts/generate_sbom.py --project pyproject.toml \
   --lock requirements.lock --output sbom.json
 ```
 
+Release staging is local and does not publish or tag anything. It uses the
+same lock to constrain build dependencies, fixes `SOURCE_DATE_EPOCH`,
+canonicalizes wheel/sdist metadata, and writes `SHA256SUMS`:
+
+```bash
+uv run --locked --python 3.11 --extra dev \
+  python scripts/build_release.py --output-dir /tmp/atlas-release-v4.0.1
+```
+
 ## CPU and GPU compatibility
 
 The project keeps one lock rather than maintaining separate CPU and GPU lock
