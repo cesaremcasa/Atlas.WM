@@ -13,6 +13,14 @@ uv export --locked --all-extras --format requirements-txt \
 `requirements.txt` is retained only as a compatibility shim to that export.
 It is not a second set of package pins.
 
+The SBOM is generated from the same committed inputs, without importing the
+active environment:
+
+```bash
+python scripts/generate_sbom.py --project pyproject.toml \
+  --lock requirements.lock --output sbom.json
+```
+
 ## CPU and GPU compatibility
 
 The project keeps one lock rather than maintaining separate CPU and GPU lock
