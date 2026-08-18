@@ -146,7 +146,7 @@ def _validate_installation(job: dict[str, Any], path: Path) -> None:
         installation_steps.append(step)
         if run.strip() != INSTALL_COMMAND or "\n" in run or "\r" in run:
             raise ValueError(f"installation command must be exactly {INSTALL_COMMAND!r}: {path}")
-        if any(key in step for key in ("if", "continue-on-error", "shell")):
+        if any(key in step for key in ("if", "continue-on-error", "shell", "working-directory")):
             raise ValueError(f"installation step must be unconditional/default shell: {path}")
 
     if len(installation_steps) != 1:
@@ -226,6 +226,7 @@ def test_ci_and_canaries_use_locked_uv():
         ("second_unlocked_sync.yml", "installation command must be exactly", False),
         ("uv_pip_install.yml", "installation command must be exactly", False),
         ("custom_shell_install.yml", "installation step must be unconditional", False),
+        ("working_directory_install.yml", "installation step must be unconditional", False),
         ("workflow_defaults_shell.yml", "workflow execution defaults", False),
         ("job_defaults_shell.yml", "job execution defaults", False),
         ("workflow_defaults_workdir.yml", "workflow execution defaults", False),
