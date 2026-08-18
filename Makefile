@@ -24,5 +24,5 @@ ci-local: lint type test security
 	@echo "All CI checks passed locally."
 
 sbom:
-	cyclonedx-py environment -o sbom.json
+	python scripts/generate_sbom.py --project pyproject.toml --lock requirements.lock --output sbom.json
 	@echo "SBOM written to sbom.json"

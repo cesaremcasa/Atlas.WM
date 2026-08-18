@@ -1,15 +1,15 @@
 [build-system]
-requires = ["setuptools>=68", "wheel"]
+requires = ["setuptools>=83.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "atlas-wm"
-version = "4.0.0"
+version = "4.0.1"
 description = "Atlas Structured World Model — entity-centric latent decomposition with hybrid static constraints"
 requires-python = ">=3.11"
 license = { file = "LICENSE" }
 dependencies = [
-    "torch>=2.1.2",
+    "torch>=2.13.0",
     "numpy>=1.26.4",
     "gymnasium>=0.29.1",
     "pyyaml>=6.0.1",
