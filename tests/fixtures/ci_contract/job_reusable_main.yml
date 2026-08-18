@@ -1,0 +1,8 @@
+name: reusable workflow fixture
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  reusable:
+    uses: octo-org/example/.github/workflows/reusable.yml@main

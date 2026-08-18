@@ -1,0 +1,10 @@
+name: unapproved action fixture
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@0000000000000000000000000000000000000000

@@ -1,0 +1,11 @@
+name: conditional clean gate fixture
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - run: test -z "$(git status --porcelain --untracked-files=all)"
+        if: false
