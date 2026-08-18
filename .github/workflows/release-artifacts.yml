@@ -26,7 +26,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        # macos-latest is currently arm64 and does not publish Python 3.11.15;
+        # macos-13 keeps the required interpreter exact for this matrix.
+        os: [ubuntu-latest, macos-13]
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
