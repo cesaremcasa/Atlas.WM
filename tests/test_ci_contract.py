@@ -20,6 +20,7 @@ PINNED_ACTIONS = {
 }
 SHA_RE = re.compile(r"[0-9a-f]{40}\Z")
 CLEAN_GATE = 'test -z "$(git status --porcelain --untracked-files=all)"'
+ALLOWED_JOB_PERMISSIONS = ({}, {"contents": "read"})
 
 
 def _workflow_files() -> list[Path]:
@@ -82,6 +83,10 @@ def _validate_uses(workflow: dict[str, Any], path: Path) -> None:
 def _validate_common_structure(workflow: dict[str, Any], path: Path) -> None:
     if workflow.get("permissions", {}) != {"contents": "read"}:
         raise ValueError(f"workflow permissions are not read-only: {path}")
+    for job_id, job in workflow.get("jobs", {}).items():
+        permissions = job.get("permissions")
+        if permissions is not None and permissions not in ALLOWED_JOB_PERMISSIONS:
+            raise ValueError(f"job permissions are elevated or not allowlisted: {path}:{job_id}")
     for key, value in _walk_values(workflow):
         if key == "continue-on-error":
             raise ValueError(f"continue-on-error is forbidden: {path}")
@@ -109,10 +114,12 @@ def _validate_runtime_structure(
         setup_uv = [
             step for step in steps if step.get("uses", "").startswith("astral-sh/setup-uv@")
         ]
-        if not setup_python or setup_python[0].get("with", {}).get("python-version") != "3.11.15":
+        if len(setup_python) != 1:
+            raise ValueError(f"exactly one setup-python is required: {path}")
+        if len(setup_uv) != 1:
+            raise ValueError(f"exactly one setup-uv is required: {path}")
+        if setup_python[0].get("with", {}).get("python-version") != "3.11.15":
             raise ValueError(f"Python pin missing or mutable: {path}")
-        if not setup_uv:
-            raise ValueError(f"setup-uv missing: {path}")
         uv_with = setup_uv[0].get("with", {})
         if uv_with.get("version") != "0.10.10" or uv_with.get("enable-cache") is not True:
             raise ValueError(f"uv version/cache pin missing: {path}")
@@ -131,6 +138,8 @@ def _validate_canary_structure(workflow: dict[str, Any], path: Path) -> None:
         steps = job.get("steps", [])
         if not steps or steps[-1].get("run") != CLEAN_GATE:
             raise ValueError(f"mandatory terminal clean gate missing: {path}")
+        if "if" in steps[-1] or "continue-on-error" in steps[-1]:
+            raise ValueError(f"clean gate must be unconditional: {path}")
         if path.name == "chaos-physics.yml":
             if not any("uv run python scripts/chaos_physics.py" in run for run in _runs(workflow)):
                 raise ValueError(f"chaos path missing: {path}")
@@ -143,7 +152,9 @@ def _validate_canary_structure(workflow: dict[str, Any], path: Path) -> None:
                 raise ValueError(f"training canary paths missing: {path}")
 
 
-def validate_workflow(path: Path, *, require_runtime: bool = True) -> None:
+def validate_workflow(
+    path: Path, *, require_runtime: bool = True, require_clean_gate: bool = False
+) -> None:
     workflow = yaml.safe_load(path.read_text())
     _validate_common_structure(workflow, path)
     if require_runtime:
@@ -154,6 +165,12 @@ def validate_workflow(path: Path, *, require_runtime: bool = True) -> None:
         )
         if path.name in {"chaos-physics.yml", "train-canary.yml"}:
             _validate_canary_structure(workflow, path)
+    elif require_clean_gate:
+        _validate_canary_structure(workflow, path)
+    else:
+        # Negative fixtures that pass the common checks still exercise the
+        # setup-count and pin checks without needing a complete schedule.
+        _validate_runtime_structure(workflow, path, require_schedule=False)
 
 
 def test_current_workflows_satisfy_ci_contract():
@@ -172,17 +189,25 @@ def test_ci_and_canaries_use_locked_uv():
 
 
 @pytest.mark.parametrize(
-    ("fixture", "message"),
+    ("fixture", "message", "clean_gate"),
     (
-        ("mutable_action.yaml", "unverified SHA"),
-        ("job_reusable_main.yml", "unapproved action"),
-        ("unapproved_action.yml", "unapproved action"),
-        ("malformed_sha.yml", "malformed SHA"),
-        ("continue_on_error.yml", "continue-on-error"),
-        ("masked_failure.yml", "masked failure"),
+        ("mutable_action.yaml", "unverified SHA", False),
+        ("job_reusable_main.yml", "unapproved action", False),
+        ("unapproved_action.yml", "unapproved action", False),
+        ("malformed_sha.yml", "malformed SHA", False),
+        ("continue_on_error.yml", "continue-on-error", False),
+        ("masked_failure.yml", "masked failure", False),
+        ("job_permissions_write.yml", "job permissions", False),
+        ("second_setup_python.yml", "exactly one setup-python", False),
+        ("second_setup_uv.yml", "exactly one setup-uv", False),
+        ("clean_if_false.yml", "unconditional", True),
     ),
 )
-def test_negative_workflow_fixtures_are_rejected(fixture, message):
+def test_negative_workflow_fixtures_are_rejected(fixture, message, clean_gate):
     """PoCs for mutable, unapproved, malformed, and masked workflow bypasses."""
     with pytest.raises(ValueError, match=message):
-        validate_workflow(FIXTURES / fixture, require_runtime=False)
+        validate_workflow(
+            FIXTURES / fixture,
+            require_runtime=False,
+            require_clean_gate=clean_gate,
+        )
