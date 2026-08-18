@@ -192,105 +192,6 @@
       "version": "3.0.3"
     },
     {
-      "bom-ref": "PyGObject==3.48.2",
-      "description": "Python bindings for GObject Introspection",
-      "externalReferences": [
-        {
-          "comment": "from packaging metadata: Home-page",
-          "type": "website",
-          "url": "https://gnome.pages.gitlab.gnome.org/pygobject"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "acknowledgement": "declared",
-            "name": "License :: OSI Approved :: GNU Lesser General Public License v2 or later (LGPLv2+)"
-          }
-        }
-      ],
-      "name": "PyGObject",
-      "purl": "pkg:pypi/pygobject@3.48.2",
-      "type": "library",
-      "version": "3.48.2"
-    },
-    {
-      "bom-ref": "PyJWT==2.7.0",
-      "description": "JSON Web Token implementation in Python",
-      "externalReferences": [
-        {
-          "comment": "from packaging metadata: Home-page",
-          "type": "website",
-          "url": "https://github.com/jpadilla/pyjwt"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "acknowledgement": "declared",
-            "id": "MIT"
-          }
-        }
-      ],
-      "name": "PyJWT",
-      "purl": "pkg:pypi/pyjwt@2.7.0",
-      "type": "library",
-      "version": "2.7.0"
-    },
-    {
-      "bom-ref": "PyYAML==6.0.1",
-      "description": "YAML parser and emitter for Python",
-      "externalReferences": [
-        {
-          "comment": "from packaging metadata: Download-URL",
-          "type": "distribution",
-          "url": "https://pypi.org/project/PyYAML/"
-        },
-        {
-          "comment": "from packaging metadata Project-URL: Documentation",
-          "type": "documentation",
-          "url": "https://pyyaml.org/wiki/PyYAMLDocumentation"
-        },
-        {
-          "comment": "from packaging metadata Project-URL: Bug Tracker",
-          "type": "issue-tracker",
-          "url": "https://github.com/yaml/pyyaml/issues"
-        },
-        {
-          "comment": "from packaging metadata Project-URL: Mailing lists",
-          "type": "other",
-          "url": "http://lists.sourceforge.net/lists/listinfo/yaml-core"
-        },
-        {
-          "comment": "from packaging metadata Project-URL: Source Code",
-          "type": "other",
-          "url": "https://github.com/yaml/pyyaml"
-        },
-        {
-          "comment": "from packaging metadata Project-URL: CI",
-          "type": "other",
-          "url": "https://github.com/yaml/pyyaml/actions"
-        },
-        {
-          "comment": "from packaging metadata: Home-page",
-          "type": "website",
-          "url": "https://pyyaml.org/"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "acknowledgement": "declared",
-            "id": "MIT"
-          }
-        }
-      ],
-      "name": "PyYAML",
-      "purl": "pkg:pypi/pyyaml@6.0.1",
-      "type": "library",
-      "version": "6.0.1"
-    },
-    {
       "bom-ref": "PyYAML==6.0.3",
       "description": "YAML parser and emitter for Python",
       "externalReferences": [
@@ -430,7 +331,7 @@
       "version": "3.1.8"
     },
     {
-      "bom-ref": "absl-py==2.4.0",
+      "bom-ref": "absl-py==2.5.0",
       "description": "Abseil Python Common Libraries, see https://github.com/abseil/abseil-py.",
       "externalReferences": [
         {
@@ -463,52 +364,9 @@
         }
       ],
       "name": "absl-py",
-      "purl": "pkg:pypi/absl-py@2.4.0",
+      "purl": "pkg:pypi/absl-py@2.5.0",
       "type": "library",
-      "version": "2.4.0"
-    },
-    {
-      "bom-ref": "argcomplete==3.1.4",
-      "description": "Bash tab completion for argparse",
-      "externalReferences": [
-        {
-          "comment": "from packaging metadata Project-URL: Documentation",
-          "type": "documentation",
-          "url": "https://kislyuk.github.io/argcomplete"
-        },
-        {
-          "comment": "from packaging metadata Project-URL: Issue Tracker",
-          "type": "issue-tracker",
-          "url": "https://github.com/kislyuk/argcomplete/issues"
-        },
-        {
-          "comment": "from packaging metadata Project-URL: Source Code",
-          "type": "other",
-          "url": "https://github.com/kislyuk/argcomplete"
-        },
-        {
-          "comment": "from packaging metadata Project-URL: Change Log",
-          "type": "release-notes",
-          "url": "https://github.com/kislyuk/argcomplete/blob/master/Changes.rst"
-        },
-        {
-          "comment": "from packaging metadata: Home-page",
-          "type": "website",
-          "url": "https://github.com/kislyuk/argcomplete"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "acknowledgement": "declared",
-            "name": "License :: OSI Approved :: Apache Software License"
-          }
-        }
-      ],
-      "name": "argcomplete",
-      "purl": "pkg:pypi/argcomplete@3.1.4",
-      "type": "library",
-      "version": "3.1.4"
+      "version": "2.5.0"
     },
     {
       "bom-ref": "arrow==1.4.0",
@@ -544,7 +402,7 @@
       "version": "1.4.0"
     },
     {
-      "bom-ref": "ast_serialize==0.5.0",
+      "bom-ref": "ast_serialize==0.6.0",
       "description": "Python bindings for mypy AST serialization",
       "externalReferences": [
         {
@@ -567,31 +425,31 @@
         }
       ],
       "name": "ast_serialize",
-      "purl": "pkg:pypi/ast-serialize@0.5.0",
+      "purl": "pkg:pypi/ast-serialize@0.6.0",
       "type": "library",
-      "version": "0.5.0"
+      "version": "0.6.0"
     },
     {
-      "bom-ref": "atlas-wm==3.0.0",
+      "bom-ref": "atlas-wm==4.0.1",
       "description": "Atlas Structured World Model \u2014 entity-centric latent decomposition with hybrid static constraints",
       "name": "atlas-wm",
-      "purl": "pkg:pypi/atlas-wm@3.0.0",
+      "purl": "pkg:pypi/atlas-wm@4.0.1",
       "type": "library",
-      "version": "3.0.0"
+      "version": "4.0.1"
     },
     {
-      "bom-ref": "BomRef.3250991798345565.7061560067523808",
+      "bom-ref": "BomRef.8920311278130622.6121281745146936",
       "description": "Atlas Structured World Model \u2014 entity-centric latent decomposition with hybrid static constraints",
       "externalReferences": [
         {
           "comment": "PackageSource: Local",
           "type": "distribution",
-          "url": "file:///home/user/Atlas.WM"
+          "url": "file:///Users/cesaravieira/Documents/Codex/2026-08-18/co/work/github-assessment/repos/Atlas.WM"
         }
       ],
       "name": "atlas-wm",
       "type": "library",
-      "version": "3.0.0"
+      "version": "4.0.1"
     },
     {
       "bom-ref": "attrs==26.1.0",
@@ -690,49 +548,6 @@
       "version": "1.9.4"
     },
     {
-      "bom-ref": "blinker==1.7.0",
-      "description": "Fast, simple object-to-object and broadcast signaling",
-      "externalReferences": [
-        {
-          "comment": "from packaging metadata Project-URL: Chat",
-          "type": "chat",
-          "url": "https://discord.gg/pallets"
-        },
-        {
-          "comment": "from packaging metadata Project-URL: Documentation",
-          "type": "documentation",
-          "url": "https://blinker.readthedocs.io"
-        },
-        {
-          "comment": "from packaging metadata Project-URL: Issue Tracker",
-          "type": "issue-tracker",
-          "url": "https://github.com/pallets-eco/blinker/issues/"
-        },
-        {
-          "comment": "from packaging metadata Project-URL: Source Code",
-          "type": "other",
-          "url": "https://github.com/pallets-eco/blinker/"
-        },
-        {
-          "comment": "from packaging metadata Project-URL: Homepage",
-          "type": "website",
-          "url": "https://blinker.readthedocs.io"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "acknowledgement": "declared",
-            "id": "MIT"
-          }
-        }
-      ],
-      "name": "blinker",
-      "purl": "pkg:pypi/blinker@1.7.0",
-      "type": "library",
-      "version": "1.7.0"
-    },
-    {
       "bom-ref": "boolean.py==5.0",
       "description": "Define boolean algebras, create and parse boolean expressions and create custom boolean DSL.",
       "externalReferences": [
@@ -754,40 +569,6 @@
       "purl": "pkg:pypi/boolean.py@5.0",
       "type": "library",
       "version": "5.0"
-    },
-    {
-      "bom-ref": "certifi==2026.2.25",
-      "description": "Python package for providing Mozilla's CA Bundle.",
-      "externalReferences": [
-        {
-          "comment": "from packaging metadata Project-URL: Source",
-          "type": "other",
-          "url": "https://github.com/certifi/python-certifi"
-        },
-        {
-          "comment": "from packaging metadata: Home-page",
-          "type": "website",
-          "url": "https://github.com/certifi/python-certifi"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "acknowledgement": "declared",
-            "id": "MPL-2.0"
-          }
-        },
-        {
-          "license": {
-            "acknowledgement": "declared",
-            "name": "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)"
-          }
-        }
-      ],
-      "name": "certifi",
-      "purl": "pkg:pypi/certifi@2026.2.25",
-      "type": "library",
-      "version": "2026.2.25"
     },
     {
       "bom-ref": "certifi==2026.6.17",
@@ -885,44 +666,6 @@
       "version": "5.2.0"
     },
     {
-      "bom-ref": "charset-normalizer==3.4.6",
-      "description": "The Real First Universal Charset Detector. Open, modern and actively maintained alternative to Chardet.",
-      "externalReferences": [
-        {
-          "comment": "from packaging metadata Project-URL: Documentation",
-          "type": "documentation",
-          "url": "https://charset-normalizer.readthedocs.io/"
-        },
-        {
-          "comment": "from packaging metadata Project-URL: Issue tracker",
-          "type": "issue-tracker",
-          "url": "https://github.com/jawah/charset_normalizer/issues"
-        },
-        {
-          "comment": "from packaging metadata Project-URL: Code",
-          "type": "other",
-          "url": "https://github.com/jawah/charset_normalizer"
-        },
-        {
-          "comment": "from packaging metadata Project-URL: Changelog",
-          "type": "release-notes",
-          "url": "https://github.com/jawah/charset_normalizer/blob/master/CHANGELOG.md"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "acknowledgement": "declared",
-            "id": "MIT"
-          }
-        }
-      ],
-      "name": "charset-normalizer",
-      "purl": "pkg:pypi/charset-normalizer@3.4.6",
-      "type": "library",
-      "version": "3.4.6"
-    },
-    {
       "bom-ref": "charset-normalizer==3.4.7",
       "description": "The Real First Universal Charset Detector. Open, modern and actively maintained alternative to Chardet.",
       "externalReferences": [
@@ -990,74 +733,13 @@
       "version": "3.1.2"
     },
     {
-      "bom-ref": "colorama==0.4.6",
-      "description": "Cross-platform colored terminal text.",
-      "externalReferences": [
-        {
-          "comment": "from packaging metadata Project-URL: Homepage",
-          "type": "website",
-          "url": "https://github.com/tartley/colorama"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "acknowledgement": "declared",
-            "name": "License :: OSI Approved :: BSD License"
-          }
-        }
-      ],
-      "name": "colorama",
-      "purl": "pkg:pypi/colorama@0.4.6",
-      "type": "library",
-      "version": "0.4.6"
-    },
-    {
-      "bom-ref": "conan==2.27.0",
-      "description": "Conan C/C++ package manager",
-      "externalReferences": [
-        {
-          "comment": "from packaging metadata Project-URL: Documentation",
-          "type": "documentation",
-          "url": "https://docs.conan.io"
-        },
-        {
-          "comment": "from packaging metadata Project-URL: Tracker",
-          "type": "issue-tracker",
-          "url": "https://github.com/conan-io/conan/issues"
-        },
-        {
-          "comment": "from packaging metadata Project-URL: Source",
-          "type": "other",
-          "url": "https://github.com/conan-io/conan"
-        },
-        {
-          "comment": "from packaging metadata: Home-page",
-          "type": "website",
-          "url": "https://conan.io"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "acknowledgement": "declared",
-            "id": "MIT"
-          }
-        }
-      ],
-      "name": "conan",
-      "purl": "pkg:pypi/conan@2.27.0",
-      "type": "library",
-      "version": "2.27.0"
-    },
-    {
-      "bom-ref": "coverage==7.14.3",
+      "bom-ref": "coverage==7.15.0",
       "description": "Code coverage measurement for Python",
       "externalReferences": [
         {
           "comment": "from packaging metadata Project-URL: Documentation",
           "type": "documentation",
-          "url": "https://coverage.readthedocs.io/en/7.14.3"
+          "url": "https://coverage.readthedocs.io/en/7.15.0"
         },
         {
           "comment": "from packaging metadata Project-URL: Issues",
@@ -1100,192 +782,9 @@
           "value": "toml"
         }
       ],
-      "purl": "pkg:pypi/coverage@7.14.3",
+      "purl": "pkg:pypi/coverage@7.15.0",
       "type": "library",
-      "version": "7.14.3"
-    },
-    {
-      "bom-ref": "cryptography==41.0.7",
-      "description": "cryptography is a package which provides cryptographic recipes and primitives to Python developers.",
-      "evidence": {
-        "licenses": [
-          {
-            "license": {
-              "acknowledgement": "declared",
-              "name": "License :: OSI Approved :: Apache Software License"
-            }
-          },
-          {
-            "license": {
-              "acknowledgement": "declared",
-              "name": "License :: OSI Approved :: BSD License"
-            }
-          }
-        ]
-      },
-      "externalReferences": [
-        {
-          "comment": "from packaging metadata Project-URL: documentation",
-          "type": "documentation",
-          "url": "https://cryptography.io/"
-        },
-        {
-          "comment": "from packaging metadata Project-URL: issues",
-          "type": "issue-tracker",
-          "url": "https://github.com/pyca/cryptography/issues"
-        },
-        {
-          "comment": "from packaging metadata Project-URL: source",
-          "type": "other",
-          "url": "https://github.com/pyca/cryptography/"
-        },
-        {
-          "comment": "from packaging metadata Project-URL: changelog",
-          "type": "release-notes",
-          "url": "https://cryptography.io/en/latest/changelog/"
-        },
-        {
-          "comment": "from packaging metadata Project-URL: homepage",
-          "type": "website",
-          "url": "https://github.com/pyca/cryptography"
-        }
-      ],
-      "licenses": [
-        {
-          "acknowledgement": "declared",
-          "expression": "Apache-2.0 OR BSD-3-Clause"
-        }
-      ],
-      "name": "cryptography",
-      "purl": "pkg:pypi/cryptography@41.0.7",
-      "type": "library",
-      "version": "41.0.7"
-    },
-    {
-      "bom-ref": "cuda-bindings==13.3.1",
-      "description": "Python bindings for CUDA",
-      "externalReferences": [
-        {
-          "comment": "from packaging metadata Project-URL: Documentation",
-          "type": "documentation",
-          "url": "https://nvidia.github.io/cuda-python/"
-        },
-        {
-          "comment": "from packaging metadata Project-URL: Repository",
-          "type": "vcs",
-          "url": "https://github.com/NVIDIA/cuda-python"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "acknowledgement": "declared",
-            "name": "LicenseRef-NVIDIA-SOFTWARE-LICENSE"
-          }
-        }
-      ],
-      "name": "cuda-bindings",
-      "purl": "pkg:pypi/cuda-bindings@13.3.1",
-      "type": "library",
-      "version": "13.3.1"
-    },
-    {
-      "bom-ref": "cuda-pathfinder==1.5.5",
-      "description": "Pathfinder for CUDA components",
-      "externalReferences": [
-        {
-          "comment": "from packaging metadata Project-URL: Documentation",
-          "type": "documentation",
-          "url": "https://nvidia.github.io/cuda-python/"
-        },
-        {
-          "comment": "from packaging metadata Project-URL: Repository",
-          "type": "vcs",
-          "url": "https://github.com/NVIDIA/cuda-python"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "acknowledgement": "declared",
-            "id": "Apache-2.0"
-          }
-        }
-      ],
-      "name": "cuda-pathfinder",
-      "purl": "pkg:pypi/cuda-pathfinder@1.5.5",
-      "type": "library",
-      "version": "1.5.5"
-    },
-    {
-      "bom-ref": "cuda-toolkit==13.0.2",
-      "description": "CUDA Toolkit meta-package",
-      "externalReferences": [
-        {
-          "comment": "from packaging metadata Project-URL: documentation",
-          "type": "documentation",
-          "url": "https://docs.nvidia.com/cuda/"
-        },
-        {
-          "comment": "from packaging metadata Project-URL: homepage",
-          "type": "website",
-          "url": "https://developer.nvidia.com/cuda-toolkit"
-        }
-      ],
-      "name": "cuda-toolkit",
-      "properties": [
-        {
-          "name": "cdx:python:package:required-extra",
-          "value": "cudart"
-        },
-        {
-          "name": "cdx:python:package:required-extra",
-          "value": "cufft"
-        },
-        {
-          "name": "cdx:python:package:required-extra",
-          "value": "cufile"
-        },
-        {
-          "name": "cdx:python:package:required-extra",
-          "value": "cupti"
-        },
-        {
-          "name": "cdx:python:package:required-extra",
-          "value": "curand"
-        },
-        {
-          "name": "cdx:python:package:required-extra",
-          "value": "cusolver"
-        },
-        {
-          "name": "cdx:python:package:required-extra",
-          "value": "cusparse"
-        },
-        {
-          "name": "cdx:python:package:required-extra",
-          "value": "nvfatbin"
-        },
-        {
-          "name": "cdx:python:package:required-extra",
-          "value": "nvjitlink"
-        },
-        {
-          "name": "cdx:python:package:required-extra",
-          "value": "nvrtc"
-        },
-        {
-          "name": "cdx:python:package:required-extra",
-          "value": "nvtx"
-        },
-        {
-          "name": "cdx:python:package:required-extra",
-          "value": "nvvm"
-        }
-      ],
-      "purl": "pkg:pypi/cuda-toolkit@13.0.2",
-      "type": "library",
-      "version": "13.0.2"
+      "version": "7.15.0"
     },
     {
       "bom-ref": "cyclonedx-bom==7.3.0",
@@ -1402,49 +901,6 @@
       "version": "11.11.0"
     },
     {
-      "bom-ref": "dbus-python==1.3.2",
-      "description": "Python bindings for libdbus",
-      "externalReferences": [
-        {
-          "comment": "from packaging metadata Project-URL: Download",
-          "type": "distribution",
-          "url": "http://dbus.freedesktop.org/releases/dbus-python/"
-        },
-        {
-          "comment": "from packaging metadata Project-URL: Tracker",
-          "type": "issue-tracker",
-          "url": "https://gitlab.freedesktop.org/dbus/dbus-python/-/issues"
-        },
-        {
-          "comment": "from packaging metadata Project-URL: Source",
-          "type": "other",
-          "url": "https://gitlab.freedesktop.org/dbus/dbus-python/"
-        },
-        {
-          "comment": "from packaging metadata Project-URL: Homepage",
-          "type": "website",
-          "url": "http://www.freedesktop.org/wiki/Software/DBusBindings/#python"
-        },
-        {
-          "comment": "from packaging metadata: Home-page",
-          "type": "website",
-          "url": "http://www.freedesktop.org/wiki/Software/DBusBindings/#python"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "acknowledgement": "declared",
-            "id": "MIT"
-          }
-        }
-      ],
-      "name": "dbus-python",
-      "purl": "pkg:pypi/dbus-python@1.3.2",
-      "type": "library",
-      "version": "1.3.2"
-    },
-    {
       "bom-ref": "defusedxml==0.7.1",
       "description": "XML bomb protection for Python stdlib modules",
       "externalReferences": [
@@ -1517,53 +973,7 @@
       "version": "0.4.3"
     },
     {
-      "bom-ref": "distro==1.9.0",
-      "description": "Distro - an OS platform information API",
-      "externalReferences": [
-        {
-          "comment": "from packaging metadata: Home-page",
-          "type": "website",
-          "url": "https://github.com/python-distro/distro"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "acknowledgement": "declared",
-            "name": "License :: OSI Approved :: Apache Software License"
-          }
-        }
-      ],
-      "name": "distro",
-      "purl": "pkg:pypi/distro@1.9.0",
-      "type": "library",
-      "version": "1.9.0"
-    },
-    {
-      "bom-ref": "fasteners==0.20",
-      "description": "A python package that provides useful locks",
-      "externalReferences": [
-        {
-          "comment": "from packaging metadata Project-URL: Homepage",
-          "type": "website",
-          "url": "https://github.com/harlowja/fasteners"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "acknowledgement": "declared",
-            "id": "Apache-2.0"
-          }
-        }
-      ],
-      "name": "fasteners",
-      "purl": "pkg:pypi/fasteners@0.20",
-      "type": "library",
-      "version": "0.20"
-    },
-    {
-      "bom-ref": "filelock==3.29.4",
+      "bom-ref": "filelock==3.29.5",
       "description": "A platform independent file lock.",
       "externalReferences": [
         {
@@ -1596,9 +1006,9 @@
         }
       ],
       "name": "filelock",
-      "purl": "pkg:pypi/filelock@3.29.4",
+      "purl": "pkg:pypi/filelock@3.29.5",
       "type": "library",
-      "version": "3.29.4"
+      "version": "3.29.5"
     },
     {
       "bom-ref": "flatbuffers==25.12.19",
@@ -1766,29 +1176,6 @@
       "version": "1.3.0"
     },
     {
-      "bom-ref": "httplib2==0.20.4",
-      "description": "A comprehensive HTTP client library.",
-      "externalReferences": [
-        {
-          "comment": "from packaging metadata: Home-page",
-          "type": "website",
-          "url": "https://github.com/httplib2/httplib2"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "acknowledgement": "declared",
-            "id": "MIT"
-          }
-        }
-      ],
-      "name": "httplib2",
-      "purl": "pkg:pypi/httplib2@0.20.4",
-      "type": "library",
-      "version": "0.20.4"
-    },
-    {
       "bom-ref": "identify==2.6.19",
       "description": "File identification library for Python",
       "externalReferences": [
@@ -1810,39 +1197,6 @@
       "purl": "pkg:pypi/identify@2.6.19",
       "type": "library",
       "version": "2.6.19"
-    },
-    {
-      "bom-ref": "idna==3.11",
-      "description": "Internationalized Domain Names in Applications (IDNA)",
-      "externalReferences": [
-        {
-          "comment": "from packaging metadata Project-URL: Issue tracker",
-          "type": "issue-tracker",
-          "url": "https://github.com/kjd/idna/issues"
-        },
-        {
-          "comment": "from packaging metadata Project-URL: Source",
-          "type": "other",
-          "url": "https://github.com/kjd/idna"
-        },
-        {
-          "comment": "from packaging metadata Project-URL: Changelog",
-          "type": "release-notes",
-          "url": "https://github.com/kjd/idna/blob/master/HISTORY.rst"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "acknowledgement": "declared",
-            "id": "BSD-3-Clause"
-          }
-        }
-      ],
-      "name": "idna",
-      "purl": "pkg:pypi/idna@3.11",
-      "type": "library",
-      "version": "3.11"
     },
     {
       "bom-ref": "idna==3.18",
@@ -2097,121 +1451,7 @@
       "version": "1.3.1"
     },
     {
-      "bom-ref": "launchpadlib==1.11.0",
-      "description": "Script Launchpad through its web services interfaces.  Officially supported.",
-      "externalReferences": [
-        {
-          "comment": "from packaging metadata: Download-URL",
-          "type": "distribution",
-          "url": "https://launchpad.net/launchpadlib/+download"
-        },
-        {
-          "comment": "from packaging metadata Project-URL: Documentation",
-          "type": "documentation",
-          "url": "https://launchpadlib.readthedocs.io/en/latest/"
-        },
-        {
-          "comment": "from packaging metadata Project-URL: Issue Tracker",
-          "type": "issue-tracker",
-          "url": "https://bugs.launchpad.net/launchpadlib"
-        },
-        {
-          "comment": "from packaging metadata Project-URL: Source",
-          "type": "other",
-          "url": "https://code.launchpad.net/launchpadlib"
-        },
-        {
-          "comment": "from packaging metadata: Home-page",
-          "type": "website",
-          "url": "https://help.launchpad.net/API/launchpadlib"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "acknowledgement": "declared",
-            "name": "License :: OSI Approved :: GNU Library or Lesser General Public License (LGPL)"
-          }
-        }
-      ],
-      "name": "launchpadlib",
-      "purl": "pkg:pypi/launchpadlib@1.11.0",
-      "type": "library",
-      "version": "1.11.0"
-    },
-    {
-      "bom-ref": "lazr.restfulclient==0.14.6",
-      "description": "A programmable client library that takes advantage of the commonalities among",
-      "externalReferences": [
-        {
-          "comment": "from packaging metadata: Download-URL",
-          "type": "distribution",
-          "url": "https://launchpad.net/lazr.restfulclient/+download"
-        },
-        {
-          "comment": "from packaging metadata Project-URL: Documentation",
-          "type": "documentation",
-          "url": "https://lazrrestfulclient.readthedocs.io/en/latest/"
-        },
-        {
-          "comment": "from packaging metadata Project-URL: Issue Tracker",
-          "type": "issue-tracker",
-          "url": "https://bugs.launchpad.net/lazr.restfulclient"
-        },
-        {
-          "comment": "from packaging metadata Project-URL: Source",
-          "type": "other",
-          "url": "https://code.launchpad.net/lazr.restfulclient"
-        },
-        {
-          "comment": "from packaging metadata: Home-page",
-          "type": "website",
-          "url": "https://launchpad.net/lazr.restfulclient"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "acknowledgement": "declared",
-            "name": "License :: OSI Approved :: GNU Library or Lesser General Public License (LGPL)"
-          }
-        }
-      ],
-      "name": "lazr.restfulclient",
-      "purl": "pkg:pypi/lazr.restfulclient@0.14.6",
-      "type": "library",
-      "version": "0.14.6"
-    },
-    {
-      "bom-ref": "lazr.uri==1.0.6",
-      "description": "A self-contained, easily reusable library for parsing, manipulating,",
-      "externalReferences": [
-        {
-          "comment": "from packaging metadata: Download-URL",
-          "type": "distribution",
-          "url": "https://launchpad.net/lazr.uri/+download"
-        },
-        {
-          "comment": "from packaging metadata: Home-page",
-          "type": "website",
-          "url": "https://launchpad.net/lazr.uri"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "acknowledgement": "declared",
-            "name": "License :: OSI Approved :: GNU Library or Lesser General Public License (LGPL)"
-          }
-        }
-      ],
-      "name": "lazr.uri",
-      "purl": "pkg:pypi/lazr.uri@1.0.6",
-      "type": "library",
-      "version": "1.0.6"
-    },
-    {
-      "bom-ref": "librt==0.11.0",
+      "bom-ref": "librt==0.12.0",
       "description": "Mypyc runtime library",
       "externalReferences": [
         {
@@ -2234,9 +1474,9 @@
         }
       ],
       "name": "librt",
-      "purl": "pkg:pypi/librt@0.11.0",
+      "purl": "pkg:pypi/librt@0.12.0",
       "type": "library",
-      "version": "0.11.0"
+      "version": "0.12.0"
     },
     {
       "bom-ref": "license-expression==30.4.4",
@@ -2628,372 +1868,6 @@
       "version": "2.4.6"
     },
     {
-      "bom-ref": "nvidia-cublas==13.1.1.3",
-      "description": "CUBLAS native runtime libraries",
-      "externalReferences": [
-        {
-          "comment": "from packaging metadata: Home-page",
-          "type": "website",
-          "url": "https://developer.nvidia.com/cuda-zone"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "acknowledgement": "declared",
-            "name": "LicenseRef-NVIDIA-Proprietary"
-          }
-        }
-      ],
-      "name": "nvidia-cublas",
-      "purl": "pkg:pypi/nvidia-cublas@13.1.1.3",
-      "type": "library",
-      "version": "13.1.1.3"
-    },
-    {
-      "bom-ref": "nvidia-cuda-cupti==13.0.85",
-      "description": "CUDA profiling tools runtime libs.",
-      "externalReferences": [
-        {
-          "comment": "from packaging metadata: Home-page",
-          "type": "website",
-          "url": "https://developer.nvidia.com/cuda-zone"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "acknowledgement": "declared",
-            "name": "License :: Other/Proprietary License"
-          }
-        }
-      ],
-      "name": "nvidia-cuda-cupti",
-      "purl": "pkg:pypi/nvidia-cuda-cupti@13.0.85",
-      "type": "library",
-      "version": "13.0.85"
-    },
-    {
-      "bom-ref": "nvidia-cuda-nvrtc==13.0.88",
-      "description": "NVRTC native runtime libraries",
-      "externalReferences": [
-        {
-          "comment": "from packaging metadata: Home-page",
-          "type": "website",
-          "url": "https://developer.nvidia.com/cuda-zone"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "acknowledgement": "declared",
-            "name": "License :: Other/Proprietary License"
-          }
-        }
-      ],
-      "name": "nvidia-cuda-nvrtc",
-      "purl": "pkg:pypi/nvidia-cuda-nvrtc@13.0.88",
-      "type": "library",
-      "version": "13.0.88"
-    },
-    {
-      "bom-ref": "nvidia-cuda-runtime==13.0.96",
-      "description": "CUDA Runtime native Libraries",
-      "externalReferences": [
-        {
-          "comment": "from packaging metadata: Home-page",
-          "type": "website",
-          "url": "https://developer.nvidia.com/cuda-zone"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "acknowledgement": "declared",
-            "name": "LicenseRef-NVIDIA-Proprietary"
-          }
-        }
-      ],
-      "name": "nvidia-cuda-runtime",
-      "purl": "pkg:pypi/nvidia-cuda-runtime@13.0.96",
-      "type": "library",
-      "version": "13.0.96"
-    },
-    {
-      "bom-ref": "nvidia-cudnn-cu13==9.20.0.48",
-      "description": "cuDNN runtime libraries",
-      "externalReferences": [
-        {
-          "comment": "from packaging metadata: Home-page",
-          "type": "website",
-          "url": "https://developer.nvidia.com/cuda-zone"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "acknowledgement": "declared",
-            "name": "LicenseRef-NVIDIA-Proprietary"
-          }
-        }
-      ],
-      "name": "nvidia-cudnn-cu13",
-      "purl": "pkg:pypi/nvidia-cudnn-cu13@9.20.0.48",
-      "type": "library",
-      "version": "9.20.0.48"
-    },
-    {
-      "bom-ref": "nvidia-cufft==12.0.0.61",
-      "description": "CUFFT native runtime libraries",
-      "externalReferences": [
-        {
-          "comment": "from packaging metadata: Home-page",
-          "type": "website",
-          "url": "https://developer.nvidia.com/cuda-zone"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "acknowledgement": "declared",
-            "name": "License :: Other/Proprietary License"
-          }
-        }
-      ],
-      "name": "nvidia-cufft",
-      "purl": "pkg:pypi/nvidia-cufft@12.0.0.61",
-      "type": "library",
-      "version": "12.0.0.61"
-    },
-    {
-      "bom-ref": "nvidia-cufile==1.15.1.6",
-      "description": "cuFile GPUDirect libraries",
-      "externalReferences": [
-        {
-          "comment": "from packaging metadata: Home-page",
-          "type": "website",
-          "url": "https://developer.nvidia.com/cuda-zone"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "acknowledgement": "declared",
-            "name": "License :: Other/Proprietary License"
-          }
-        }
-      ],
-      "name": "nvidia-cufile",
-      "purl": "pkg:pypi/nvidia-cufile@1.15.1.6",
-      "type": "library",
-      "version": "1.15.1.6"
-    },
-    {
-      "bom-ref": "nvidia-curand==10.4.0.35",
-      "description": "CURAND native runtime libraries",
-      "externalReferences": [
-        {
-          "comment": "from packaging metadata: Home-page",
-          "type": "website",
-          "url": "https://developer.nvidia.com/cuda-zone"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "acknowledgement": "declared",
-            "name": "License :: Other/Proprietary License"
-          }
-        }
-      ],
-      "name": "nvidia-curand",
-      "purl": "pkg:pypi/nvidia-curand@10.4.0.35",
-      "type": "library",
-      "version": "10.4.0.35"
-    },
-    {
-      "bom-ref": "nvidia-cusolver==12.0.4.66",
-      "description": "CUDA solver native runtime libraries",
-      "externalReferences": [
-        {
-          "comment": "from packaging metadata: Home-page",
-          "type": "website",
-          "url": "https://developer.nvidia.com/cuda-zone"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "acknowledgement": "declared",
-            "name": "License :: Other/Proprietary License"
-          }
-        }
-      ],
-      "name": "nvidia-cusolver",
-      "purl": "pkg:pypi/nvidia-cusolver@12.0.4.66",
-      "type": "library",
-      "version": "12.0.4.66"
-    },
-    {
-      "bom-ref": "nvidia-cusparse==12.6.3.3",
-      "description": "CUSPARSE native runtime libraries",
-      "externalReferences": [
-        {
-          "comment": "from packaging metadata: Home-page",
-          "type": "website",
-          "url": "https://developer.nvidia.com/cuda-zone"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "acknowledgement": "declared",
-            "name": "License :: Other/Proprietary License"
-          }
-        }
-      ],
-      "name": "nvidia-cusparse",
-      "purl": "pkg:pypi/nvidia-cusparse@12.6.3.3",
-      "type": "library",
-      "version": "12.6.3.3"
-    },
-    {
-      "bom-ref": "nvidia-cusparselt-cu13==0.8.1",
-      "description": "NVIDIA cuSPARSELt",
-      "externalReferences": [
-        {
-          "comment": "from packaging metadata: Home-page",
-          "type": "website",
-          "url": "https://developer.nvidia.com/cusparselt"
-        }
-      ],
-      "name": "nvidia-cusparselt-cu13",
-      "purl": "pkg:pypi/nvidia-cusparselt-cu13@0.8.1",
-      "type": "library",
-      "version": "0.8.1"
-    },
-    {
-      "bom-ref": "nvidia-nccl-cu13==2.29.7",
-      "description": "NVIDIA Collective Communication Library (NCCL) Runtime",
-      "externalReferences": [
-        {
-          "comment": "from packaging metadata: Home-page",
-          "type": "website",
-          "url": "https://developer.nvidia.com/cuda-zone"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "acknowledgement": "declared",
-            "name": "LicenseRef-NVIDIA-Proprietary"
-          }
-        }
-      ],
-      "name": "nvidia-nccl-cu13",
-      "purl": "pkg:pypi/nvidia-nccl-cu13@2.29.7",
-      "type": "library",
-      "version": "2.29.7"
-    },
-    {
-      "bom-ref": "nvidia-nvjitlink==13.0.88",
-      "description": "Nvidia JIT LTO Library",
-      "externalReferences": [
-        {
-          "comment": "from packaging metadata: Home-page",
-          "type": "website",
-          "url": "https://developer.nvidia.com/cuda-zone"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "acknowledgement": "declared",
-            "name": "License :: Other/Proprietary License"
-          }
-        }
-      ],
-      "name": "nvidia-nvjitlink",
-      "purl": "pkg:pypi/nvidia-nvjitlink@13.0.88",
-      "type": "library",
-      "version": "13.0.88"
-    },
-    {
-      "bom-ref": "nvidia-nvshmem-cu13==3.4.5",
-      "description": "NVSHMEM creates a global address space that provides efficient and scalable communication for NVIDIA GPU clusters.",
-      "externalReferences": [
-        {
-          "comment": "from packaging metadata: Home-page",
-          "type": "website",
-          "url": "https://developer.nvidia.com/cuda-zone"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "acknowledgement": "declared",
-            "name": "LicenseRef-NVIDIA-Proprietary"
-          }
-        }
-      ],
-      "name": "nvidia-nvshmem-cu13",
-      "purl": "pkg:pypi/nvidia-nvshmem-cu13@3.4.5",
-      "type": "library",
-      "version": "3.4.5"
-    },
-    {
-      "bom-ref": "nvidia-nvtx==13.0.85",
-      "description": "NVIDIA Tools Extension",
-      "externalReferences": [
-        {
-          "comment": "from packaging metadata: Home-page",
-          "type": "website",
-          "url": "https://developer.nvidia.com/cuda-zone"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "acknowledgement": "declared",
-            "name": "License :: Other/Proprietary License"
-          }
-        }
-      ],
-      "name": "nvidia-nvtx",
-      "purl": "pkg:pypi/nvidia-nvtx@13.0.85",
-      "type": "library",
-      "version": "13.0.85"
-    },
-    {
-      "bom-ref": "oauthlib==3.2.2",
-      "description": "A generic, spec-compliant, thorough implementation of the OAuth request-signing logic",
-      "externalReferences": [
-        {
-          "comment": "from packaging metadata: Home-page",
-          "type": "website",
-          "url": "https://github.com/oauthlib/oauthlib"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "acknowledgement": "declared",
-            "name": "License :: OSI Approved"
-          }
-        },
-        {
-          "license": {
-            "acknowledgement": "declared",
-            "name": "License :: OSI Approved :: BSD License"
-          }
-        }
-      ],
-      "name": "oauthlib",
-      "purl": "pkg:pypi/oauthlib@3.2.2",
-      "type": "library",
-      "version": "3.2.2"
-    },
-    {
       "bom-ref": "onnx==1.22.0",
       "description": "Open Neural Network Exchange",
       "externalReferences": [
@@ -3020,39 +1894,6 @@
       "purl": "pkg:pypi/onnx@1.22.0",
       "type": "library",
       "version": "1.22.0"
-    },
-    {
-      "bom-ref": "onnx-ir==0.2.1",
-      "description": "Efficient in-memory representation for ONNX",
-      "externalReferences": [
-        {
-          "comment": "from packaging metadata Project-URL: Issues",
-          "type": "issue-tracker",
-          "url": "https://github.com/onnx/ir-py/issues"
-        },
-        {
-          "comment": "from packaging metadata Project-URL: Repository",
-          "type": "vcs",
-          "url": "https://github.com/onnx/ir-py"
-        },
-        {
-          "comment": "from packaging metadata Project-URL: Homepage",
-          "type": "website",
-          "url": "https://onnx.ai/ir-py"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "acknowledgement": "declared",
-            "id": "Apache-2.0"
-          }
-        }
-      ],
-      "name": "onnx-ir",
-      "purl": "pkg:pypi/onnx-ir@0.2.1",
-      "type": "library",
-      "version": "0.2.1"
     },
     {
       "bom-ref": "onnxruntime==1.27.0",
@@ -3083,34 +1924,6 @@
       "version": "1.27.0"
     },
     {
-      "bom-ref": "onnxscript==0.7.0",
-      "description": "Naturally author ONNX functions and models using a subset of Python",
-      "externalReferences": [
-        {
-          "comment": "from packaging metadata Project-URL: Repository",
-          "type": "vcs",
-          "url": "https://github.com/microsoft/onnxscript"
-        },
-        {
-          "comment": "from packaging metadata Project-URL: Homepage",
-          "type": "website",
-          "url": "https://microsoft.github.io/onnxscript/"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "acknowledgement": "declared",
-            "id": "MIT"
-          }
-        }
-      ],
-      "name": "onnxscript",
-      "purl": "pkg:pypi/onnxscript@0.7.0",
-      "type": "library",
-      "version": "0.7.0"
-    },
-    {
       "bom-ref": "packageurl-python==0.17.6",
       "description": "A purl aka. Package URL parser and builder",
       "externalReferences": [
@@ -3132,40 +1945,6 @@
       "purl": "pkg:pypi/packageurl-python@0.17.6",
       "type": "library",
       "version": "0.17.6"
-    },
-    {
-      "bom-ref": "packaging==24.0",
-      "description": "Core utilities for Python packages",
-      "externalReferences": [
-        {
-          "comment": "from packaging metadata Project-URL: Documentation",
-          "type": "documentation",
-          "url": "https://packaging.pypa.io/"
-        },
-        {
-          "comment": "from packaging metadata Project-URL: Source",
-          "type": "other",
-          "url": "https://github.com/pypa/packaging"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "acknowledgement": "declared",
-            "name": "License :: OSI Approved :: Apache Software License"
-          }
-        },
-        {
-          "license": {
-            "acknowledgement": "declared",
-            "name": "License :: OSI Approved :: BSD License"
-          }
-        }
-      ],
-      "name": "packaging",
-      "purl": "pkg:pypi/packaging@24.0",
-      "type": "library",
-      "version": "24.0"
     },
     {
       "bom-ref": "packaging==26.2",
@@ -3192,29 +1971,6 @@
       "purl": "pkg:pypi/packaging@26.2",
       "type": "library",
       "version": "26.2"
-    },
-    {
-      "bom-ref": "patch-ng==1.18.1",
-      "description": "Library to parse and apply unified diffs.",
-      "externalReferences": [
-        {
-          "comment": "from packaging metadata: Home-page",
-          "type": "website",
-          "url": "https://github.com/conan-io/python-patch"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "acknowledgement": "declared",
-            "id": "MIT"
-          }
-        }
-      ],
-      "name": "patch-ng",
-      "purl": "pkg:pypi/patch-ng@1.18.1",
-      "type": "library",
-      "version": "1.18.1"
     },
     {
       "bom-ref": "pathspec==1.1.1",
@@ -3255,7 +2011,7 @@
       "version": "1.1.1"
     },
     {
-      "bom-ref": "pillow==12.2.0",
+      "bom-ref": "pillow==12.3.0",
       "description": "Python Imaging Library (fork)",
       "externalReferences": [
         {
@@ -3303,47 +2059,9 @@
         }
       ],
       "name": "pillow",
-      "purl": "pkg:pypi/pillow@12.2.0",
+      "purl": "pkg:pypi/pillow@12.3.0",
       "type": "library",
-      "version": "12.2.0"
-    },
-    {
-      "bom-ref": "pip==24.0",
-      "description": "The PyPA recommended tool for installing Python packages.",
-      "externalReferences": [
-        {
-          "comment": "from packaging metadata Project-URL: Documentation",
-          "type": "documentation",
-          "url": "https://pip.pypa.io"
-        },
-        {
-          "comment": "from packaging metadata Project-URL: Source",
-          "type": "other",
-          "url": "https://github.com/pypa/pip"
-        },
-        {
-          "comment": "from packaging metadata Project-URL: Changelog",
-          "type": "release-notes",
-          "url": "https://pip.pypa.io/en/stable/news/"
-        },
-        {
-          "comment": "from packaging metadata Project-URL: Homepage",
-          "type": "website",
-          "url": "https://pip.pypa.io/"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "acknowledgement": "declared",
-            "id": "MIT"
-          }
-        }
-      ],
-      "name": "pip",
-      "purl": "pkg:pypi/pip@24.0",
-      "type": "library",
-      "version": "24.0"
+      "version": "12.3.0"
     },
     {
       "bom-ref": "pip==26.1.2",
@@ -3603,29 +2321,6 @@
       "version": "2.1.0"
     },
     {
-      "bom-ref": "pyparsing==3.1.1",
-      "description": "pyparsing module - Classes and methods to define and execute parsing grammars",
-      "externalReferences": [
-        {
-          "comment": "from packaging metadata Project-URL: Homepage",
-          "type": "website",
-          "url": "https://github.com/pyparsing/pyparsing/"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "acknowledgement": "declared",
-            "id": "MIT"
-          }
-        }
-      ],
-      "name": "pyparsing",
-      "purl": "pkg:pypi/pyparsing@3.1.1",
-      "type": "library",
-      "version": "3.1.1"
-    },
-    {
       "bom-ref": "pyparsing==3.3.2",
       "description": "pyparsing - Classes and methods to define and execute parsing grammars",
       "externalReferences": [
@@ -3745,14 +2440,6 @@
       "version": "7.1.0"
     },
     {
-      "bom-ref": "python-apt==2.7.7+ubuntu5.2",
-      "description": "Python bindings for APT",
-      "name": "python-apt",
-      "purl": "pkg:pypi/python-apt@2.7.7%2Bubuntu5.2",
-      "type": "library",
-      "version": "2.7.7+ubuntu5.2"
-    },
-    {
       "bom-ref": "python-dateutil==2.9.0.post0",
       "description": "Extensions to the standard Python datetime module",
       "externalReferences": [
@@ -3792,7 +2479,7 @@
       "version": "2.9.0.post0"
     },
     {
-      "bom-ref": "python-discovery==1.4.2",
+      "bom-ref": "python-discovery==1.4.3",
       "description": "Python interpreter discovery",
       "externalReferences": [
         {
@@ -3830,9 +2517,9 @@
         }
       ],
       "name": "python-discovery",
-      "purl": "pkg:pypi/python-discovery@1.4.2",
+      "purl": "pkg:pypi/python-discovery@1.4.3",
       "type": "library",
-      "version": "1.4.2"
+      "version": "1.4.3"
     },
     {
       "bom-ref": "referencing==0.37.0",
@@ -3886,40 +2573,6 @@
       "purl": "pkg:pypi/referencing@0.37.0",
       "type": "library",
       "version": "0.37.0"
-    },
-    {
-      "bom-ref": "requests==2.33.1",
-      "description": "Python HTTP for Humans.",
-      "externalReferences": [
-        {
-          "comment": "from packaging metadata Project-URL: Documentation",
-          "type": "documentation",
-          "url": "https://requests.readthedocs.io"
-        },
-        {
-          "comment": "from packaging metadata Project-URL: Source",
-          "type": "other",
-          "url": "https://github.com/psf/requests"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "acknowledgement": "declared",
-            "id": "Apache-2.0"
-          }
-        },
-        {
-          "license": {
-            "acknowledgement": "declared",
-            "name": "License :: OSI Approved :: Apache Software License"
-          }
-        }
-      ],
-      "name": "requests",
-      "purl": "pkg:pypi/requests@2.33.1",
-      "type": "library",
-      "version": "2.33.1"
     },
     {
       "bom-ref": "requests==2.34.2",
@@ -4068,7 +2721,7 @@
       "version": "15.0.0"
     },
     {
-      "bom-ref": "rpds-py==2026.5.1",
+      "bom-ref": "rpds-py==2026.6.3",
       "description": "Python bindings to Rust's persistent data structures (rpds)",
       "externalReferences": [
         {
@@ -4116,12 +2769,12 @@
         }
       ],
       "name": "rpds-py",
-      "purl": "pkg:pypi/rpds-py@2026.5.1",
+      "purl": "pkg:pypi/rpds-py@2026.6.3",
       "type": "library",
-      "version": "2026.5.1"
+      "version": "2026.6.3"
     },
     {
-      "bom-ref": "ruff==0.15.18",
+      "bom-ref": "ruff==0.15.20",
       "description": "An extremely fast Python linter and code formatter, written in Rust.",
       "externalReferences": [
         {
@@ -4154,9 +2807,9 @@
         }
       ],
       "name": "ruff",
-      "purl": "pkg:pypi/ruff@0.15.18",
+      "purl": "pkg:pypi/ruff@0.15.20",
       "type": "library",
-      "version": "0.15.18"
+      "version": "0.15.20"
     },
     {
       "bom-ref": "safetensors==0.8.0",
@@ -4186,41 +2839,8 @@
       "version": "0.8.0"
     },
     {
-      "bom-ref": "setuptools==68.1.2",
-      "description": "Easily download, build, install, upgrade, and uninstall Python packages",
-      "externalReferences": [
-        {
-          "comment": "from packaging metadata Project-URL: Documentation",
-          "type": "documentation",
-          "url": "https://setuptools.pypa.io/"
-        },
-        {
-          "comment": "from packaging metadata Project-URL: Changelog",
-          "type": "release-notes",
-          "url": "https://setuptools.pypa.io/en/stable/history.html"
-        },
-        {
-          "comment": "from packaging metadata: Home-page",
-          "type": "website",
-          "url": "https://github.com/pypa/setuptools"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "acknowledgement": "declared",
-            "id": "MIT"
-          }
-        }
-      ],
-      "name": "setuptools",
-      "purl": "pkg:pypi/setuptools@68.1.2",
-      "type": "library",
-      "version": "68.1.2"
-    },
-    {
-      "bom-ref": "setuptools==81.0.0",
-      "description": "Easily download, build, install, upgrade, and uninstall Python packages",
+      "bom-ref": "setuptools==84.0.0",
+      "description": "Most extensible Python build backend with support for C/C++ extension modules",
       "externalReferences": [
         {
           "comment": "from packaging metadata Project-URL: Documentation",
@@ -4247,32 +2867,9 @@
         }
       ],
       "name": "setuptools",
-      "purl": "pkg:pypi/setuptools@81.0.0",
+      "purl": "pkg:pypi/setuptools@84.0.0",
       "type": "library",
-      "version": "81.0.0"
-    },
-    {
-      "bom-ref": "six==1.16.0",
-      "description": "Python 2 and 3 compatibility utilities",
-      "externalReferences": [
-        {
-          "comment": "from packaging metadata: Home-page",
-          "type": "website",
-          "url": "https://github.com/benjaminp/six"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "acknowledgement": "declared",
-            "id": "MIT"
-          }
-        }
-      ],
-      "name": "six",
-      "purl": "pkg:pypi/six@1.16.0",
-      "type": "library",
-      "version": "1.16.0"
+      "version": "84.0.0"
     },
     {
       "bom-ref": "six==1.17.0",
@@ -4321,7 +2918,7 @@
       "version": "2.4.0"
     },
     {
-      "bom-ref": "stevedore==5.8.0",
+      "bom-ref": "stevedore==5.9.0",
       "description": "Manage dynamic plugins for Python applications",
       "externalReferences": [
         {
@@ -4344,9 +2941,9 @@
         }
       ],
       "name": "stevedore",
-      "purl": "pkg:pypi/stevedore@5.8.0",
+      "purl": "pkg:pypi/stevedore@5.9.0",
       "type": "library",
-      "version": "5.8.0"
+      "version": "5.9.0"
     },
     {
       "bom-ref": "sympy==1.14.0",
@@ -4377,7 +2974,7 @@
       "version": "1.14.0"
     },
     {
-      "bom-ref": "tensorboard==2.20.0",
+      "bom-ref": "tensorboard==2.21.0",
       "description": "TensorBoard lets you watch Tensors Flow",
       "externalReferences": [
         {
@@ -4395,9 +2992,9 @@
         }
       ],
       "name": "tensorboard",
-      "purl": "pkg:pypi/tensorboard@2.20.0",
+      "purl": "pkg:pypi/tensorboard@2.21.0",
       "type": "library",
-      "version": "2.20.0"
+      "version": "2.21.0"
     },
     {
       "bom-ref": "tensorboard-data-server==0.7.2",
@@ -4421,29 +3018,6 @@
       "purl": "pkg:pypi/tensorboard-data-server@0.7.2",
       "type": "library",
       "version": "0.7.2"
-    },
-    {
-      "bom-ref": "toml==0.10.2",
-      "description": "Python Library for Tom's Obvious, Minimal Language",
-      "externalReferences": [
-        {
-          "comment": "from packaging metadata: Home-page",
-          "type": "website",
-          "url": "https://github.com/uiri/toml"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "acknowledgement": "declared",
-            "id": "MIT"
-          }
-        }
-      ],
-      "name": "toml",
-      "purl": "pkg:pypi/toml@0.10.2",
-      "type": "library",
-      "version": "0.10.2"
     },
     {
       "bom-ref": "tomli==2.4.1",
@@ -4502,7 +3076,7 @@
       "version": "1.2.0"
     },
     {
-      "bom-ref": "torch==2.12.1",
+      "bom-ref": "torch==2.13.0",
       "description": "Tensors and Dynamic neural networks in Python with strong GPU acceleration",
       "externalReferences": [
         {
@@ -4533,42 +3107,17 @@
       ],
       "licenses": [
         {
-          "license": {
-            "acknowledgement": "declared",
-            "id": "BSD-3-Clause"
-          }
+          "acknowledgement": "declared",
+          "expression": "Apache-2.0 AND Apache-2.0 WITH LLVM-exception AND BSD-2-Clause AND BSD-3-Clause AND BSL-1.0 AND MIT"
         }
       ],
       "name": "torch",
-      "purl": "pkg:pypi/torch@2.12.1",
+      "purl": "pkg:pypi/torch@2.13.0",
       "type": "library",
-      "version": "2.12.1"
+      "version": "2.13.0"
     },
     {
-      "bom-ref": "triton==3.7.1",
-      "description": "A language and compiler for custom Deep Learning operations",
-      "externalReferences": [
-        {
-          "comment": "from packaging metadata: Home-page",
-          "type": "website",
-          "url": "https://github.com/triton-lang/triton/"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "acknowledgement": "declared",
-            "id": "MIT"
-          }
-        }
-      ],
-      "name": "triton",
-      "purl": "pkg:pypi/triton@3.7.1",
-      "type": "library",
-      "version": "3.7.1"
-    },
-    {
-      "bom-ref": "typing_extensions==4.15.0",
+      "bom-ref": "typing_extensions==4.16.0",
       "description": "Backported and Experimental Type Hints for Python 3.9+",
       "externalReferences": [
         {
@@ -4611,9 +3160,9 @@
         }
       ],
       "name": "typing_extensions",
-      "purl": "pkg:pypi/typing-extensions@4.15.0",
+      "purl": "pkg:pypi/typing-extensions@4.16.0",
       "type": "library",
-      "version": "4.15.0"
+      "version": "4.16.0"
     },
     {
       "bom-ref": "tzdata==2026.2",
@@ -4675,44 +3224,6 @@
       "purl": "pkg:pypi/uri-template@1.3.0",
       "type": "library",
       "version": "1.3.0"
-    },
-    {
-      "bom-ref": "urllib3==2.6.3",
-      "description": "HTTP library with thread-safe connection pooling, file post, and more.",
-      "externalReferences": [
-        {
-          "comment": "from packaging metadata Project-URL: Documentation",
-          "type": "documentation",
-          "url": "https://urllib3.readthedocs.io"
-        },
-        {
-          "comment": "from packaging metadata Project-URL: Issue tracker",
-          "type": "issue-tracker",
-          "url": "https://github.com/urllib3/urllib3/issues"
-        },
-        {
-          "comment": "from packaging metadata Project-URL: Code",
-          "type": "other",
-          "url": "https://github.com/urllib3/urllib3"
-        },
-        {
-          "comment": "from packaging metadata Project-URL: Changelog",
-          "type": "release-notes",
-          "url": "https://github.com/urllib3/urllib3/blob/main/CHANGES.rst"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "acknowledgement": "declared",
-            "id": "MIT"
-          }
-        }
-      ],
-      "name": "urllib3",
-      "purl": "pkg:pypi/urllib3@2.6.3",
-      "type": "library",
-      "version": "2.6.3"
     },
     {
       "bom-ref": "urllib3==2.7.0",
@@ -4791,34 +3302,6 @@
       "version": "21.5.1"
     },
     {
-      "bom-ref": "wadllib==1.3.6",
-      "description": "Navigate HTTP resources using WADL files as guides.",
-      "externalReferences": [
-        {
-          "comment": "from packaging metadata: Download-URL",
-          "type": "distribution",
-          "url": "https://launchpad.net/wadllib/+download"
-        },
-        {
-          "comment": "from packaging metadata: Home-page",
-          "type": "website",
-          "url": "https://launchpad.net/wadllib"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "acknowledgement": "declared",
-            "name": "License :: OSI Approved :: GNU Library or Lesser General Public License (LGPL)"
-          }
-        }
-      ],
-      "name": "wadllib",
-      "purl": "pkg:pypi/wadllib@1.3.6",
-      "type": "library",
-      "version": "1.3.6"
-    },
-    {
       "bom-ref": "webcolors==25.10.0",
       "description": "A library for working with the color formats defined by HTML and CSS.",
       "externalReferences": [
@@ -4851,102 +3334,18 @@
       "purl": "pkg:pypi/webcolors@25.10.0",
       "type": "library",
       "version": "25.10.0"
-    },
-    {
-      "bom-ref": "wheel==0.42.0",
-      "description": "A built-package format for Python",
-      "externalReferences": [
-        {
-          "comment": "from packaging metadata Project-URL: Documentation",
-          "type": "documentation",
-          "url": "https://wheel.readthedocs.io/"
-        },
-        {
-          "comment": "from packaging metadata Project-URL: Issue Tracker",
-          "type": "issue-tracker",
-          "url": "https://github.com/pypa/wheel/issues"
-        },
-        {
-          "comment": "from packaging metadata Project-URL: Source",
-          "type": "other",
-          "url": "https://github.com/pypa/wheel"
-        },
-        {
-          "comment": "from packaging metadata Project-URL: Changelog",
-          "type": "release-notes",
-          "url": "https://wheel.readthedocs.io/en/stable/news.html"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "acknowledgement": "declared",
-            "id": "MIT"
-          }
-        }
-      ],
-      "name": "wheel",
-      "purl": "pkg:pypi/wheel@0.42.0",
-      "type": "library",
-      "version": "0.42.0"
-    },
-    {
-      "bom-ref": "xmltodict==0.13.0",
-      "description": "Makes working with XML feel like you are working with JSON",
-      "externalReferences": [
-        {
-          "comment": "from packaging metadata: Home-page",
-          "type": "website",
-          "url": "https://github.com/martinblech/xmltodict"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "acknowledgement": "declared",
-            "id": "MIT"
-          }
-        }
-      ],
-      "name": "xmltodict",
-      "purl": "pkg:pypi/xmltodict@0.13.0",
-      "type": "library",
-      "version": "0.13.0"
-    },
-    {
-      "bom-ref": "yq==3.1.0",
-      "description": "Command-line YAML/XML processor - jq wrapper for YAML/XML documents",
-      "externalReferences": [
-        {
-          "comment": "from packaging metadata: Home-page",
-          "type": "website",
-          "url": "https://github.com/kislyuk/yq"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "acknowledgement": "declared",
-            "name": "License :: OSI Approved :: Apache Software License"
-          }
-        }
-      ],
-      "name": "yq",
-      "purl": "pkg:pypi/yq@3.1.0",
-      "type": "library",
-      "version": "3.1.0"
     }
   ],
   "dependencies": [
     {
       "dependsOn": [
-        "filelock==3.29.4",
+        "filelock==3.29.5",
         "msgpack==1.2.1",
         "mypy==2.1.0",
         "pytest-cov==7.1.0",
         "pytest==9.1.1",
         "requests==2.34.2",
-        "ruff==0.15.18"
+        "ruff==0.15.20"
       ],
       "ref": "CacheControl==0.14.4"
     },
@@ -4961,8 +3360,8 @@
     },
     {
       "dependsOn": [
-        "PyYAML==6.0.1",
-        "coverage==7.14.3"
+        "PyYAML==6.0.3",
+        "coverage==7.15.0"
       ],
       "ref": "Markdown==3.10.2"
     },
@@ -4970,28 +3369,9 @@
       "ref": "MarkupSafe==3.0.3"
     },
     {
-      "ref": "PyGObject==3.48.2"
-    },
-    {
-      "dependsOn": [
-        "coverage==7.14.3",
-        "cryptography==41.0.7",
-        "pre_commit==4.6.0",
-        "pytest==9.1.1",
-        "typing_extensions==4.15.0"
-      ],
-      "ref": "PyJWT==2.7.0"
-    },
-    {
-      "ref": "PyYAML==6.0.1"
-    },
-    {
       "ref": "PyYAML==6.0.3"
     },
     {
-      "dependsOn": [
-        "colorama==0.4.6"
-      ],
       "ref": "Pygments==2.20.0"
     },
     {
@@ -5001,16 +3381,7 @@
       "ref": "Werkzeug==3.1.8"
     },
     {
-      "ref": "absl-py==2.4.0"
-    },
-    {
-      "dependsOn": [
-        "coverage==7.14.3",
-        "mypy==2.1.0",
-        "ruff==0.15.18",
-        "wheel==0.42.0"
-      ],
-      "ref": "argcomplete==3.1.4"
+      "ref": "absl-py==2.5.0"
     },
     {
       "dependsOn": [
@@ -5023,11 +3394,11 @@
       "ref": "arrow==1.4.0"
     },
     {
-      "ref": "ast_serialize==0.5.0"
+      "ref": "ast_serialize==0.6.0"
     },
     {
       "dependsOn": [
-        "PyYAML==6.0.1",
+        "PyYAML==6.0.3",
         "bandit==1.9.4",
         "cyclonedx-bom==7.3.0",
         "gymnasium==1.3.0",
@@ -5039,38 +3410,31 @@
         "pre_commit==4.6.0",
         "pytest-cov==7.1.0",
         "pytest==9.1.1",
-        "ruff==0.15.18",
+        "ruff==0.15.20",
         "safetensors==0.8.0",
-        "tensorboard==2.20.0",
-        "torch==2.12.1"
+        "tensorboard==2.21.0",
+        "torch==2.13.0"
       ],
-      "ref": "atlas-wm==3.0.0"
+      "ref": "atlas-wm==4.0.1"
     },
     {
       "ref": "attrs==26.1.0"
     },
     {
       "dependsOn": [
-        "PyYAML==6.0.1",
-        "colorama==0.4.6",
-        "coverage==7.14.3",
+        "PyYAML==6.0.3",
+        "coverage==7.15.0",
         "rich==15.0.0",
-        "stevedore==5.8.0",
+        "stevedore==5.9.0",
         "tomli==2.4.1"
       ],
       "ref": "bandit==1.9.4"
-    },
-    {
-      "ref": "blinker==1.7.0"
     },
     {
       "dependsOn": [
         "pytest==9.1.1"
       ],
       "ref": "boolean.py==5.0"
-    },
-    {
-      "ref": "certifi==2026.2.25"
     },
     {
       "ref": "certifi==2026.6.17"
@@ -5082,82 +3446,23 @@
       "ref": "chardet==5.2.0"
     },
     {
-      "ref": "charset-normalizer==3.4.6"
-    },
-    {
       "ref": "charset-normalizer==3.4.7"
     },
     {
       "ref": "cloudpickle==3.1.2"
     },
     {
-      "ref": "colorama==0.4.6"
-    },
-    {
-      "dependsOn": [
-        "Jinja2==3.1.6",
-        "PyJWT==2.7.0",
-        "PyYAML==6.0.1",
-        "colorama==0.4.6",
-        "distro==1.9.0",
-        "fasteners==0.20",
-        "patch-ng==1.18.1",
-        "pytest-cov==7.1.0",
-        "pytest==9.1.1",
-        "python-dateutil==2.9.0.post0",
-        "requests==2.34.2",
-        "setuptools==68.1.2",
-        "urllib3==2.7.0"
-      ],
-      "ref": "conan==2.27.0"
-    },
-    {
       "dependsOn": [
         "tomli==2.4.1"
       ],
-      "ref": "coverage==7.14.3"
-    },
-    {
-      "dependsOn": [
-        "mypy==2.1.0",
-        "pytest-cov==7.1.0",
-        "pytest==9.1.1",
-        "ruff==0.15.18"
-      ],
-      "ref": "cryptography==41.0.7"
-    },
-    {
-      "dependsOn": [
-        "cuda-pathfinder==1.5.5",
-        "cuda-toolkit==13.0.2"
-      ],
-      "ref": "cuda-bindings==13.3.1"
-    },
-    {
-      "ref": "cuda-pathfinder==1.5.5"
-    },
-    {
-      "dependsOn": [
-        "nvidia-cublas==13.1.1.3",
-        "nvidia-cuda-cupti==13.0.85",
-        "nvidia-cuda-nvrtc==13.0.88",
-        "nvidia-cuda-runtime==13.0.96",
-        "nvidia-cufft==12.0.0.61",
-        "nvidia-cufile==1.15.1.6",
-        "nvidia-curand==10.4.0.35",
-        "nvidia-cusolver==12.0.4.66",
-        "nvidia-cusparse==12.6.3.3",
-        "nvidia-nvjitlink==13.0.88",
-        "nvidia-nvtx==13.0.85"
-      ],
-      "ref": "cuda-toolkit==13.0.2"
+      "ref": "coverage==7.15.0"
     },
     {
       "dependsOn": [
         "chardet==5.2.0",
         "cyclonedx-python-lib==11.11.0",
         "packageurl-python==0.17.6",
-        "packaging==24.0",
+        "packaging==26.2",
         "pip-requirements-parser==32.0.1",
         "tomli==2.4.1"
       ],
@@ -5172,12 +3477,9 @@
         "py-serializable==2.1.0",
         "referencing==0.37.0",
         "sortedcontainers==2.4.0",
-        "typing_extensions==4.15.0"
+        "typing_extensions==4.16.0"
       ],
       "ref": "cyclonedx-python-lib==11.11.0"
-    },
-    {
-      "ref": "dbus-python==1.3.2"
     },
     {
       "ref": "defusedxml==0.7.1"
@@ -5186,13 +3488,7 @@
       "ref": "distlib==0.4.3"
     },
     {
-      "ref": "distro==1.9.0"
-    },
-    {
-      "ref": "fasteners==0.20"
-    },
-    {
-      "ref": "filelock==3.29.4"
+      "ref": "filelock==3.29.5"
     },
     {
       "ref": "flatbuffers==25.12.19"
@@ -5209,14 +3505,14 @@
         "pytest-cov==7.1.0",
         "pytest==9.1.1",
         "requests==2.34.2",
-        "ruff==0.15.18",
+        "ruff==0.15.20",
         "urllib3==2.7.0"
       ],
       "ref": "fsspec==2026.6.0"
     },
     {
       "dependsOn": [
-        "typing_extensions==4.15.0"
+        "typing_extensions==4.16.0"
       ],
       "ref": "grpcio==1.81.1"
     },
@@ -5225,30 +3521,21 @@
         "Farama-Notifications==0.0.6",
         "cloudpickle==3.1.2",
         "numpy==2.4.6",
-        "packaging==24.0",
+        "packaging==26.2",
         "pytest==9.1.1",
-        "torch==2.12.1",
-        "typing_extensions==4.15.0"
+        "torch==2.13.0",
+        "typing_extensions==4.16.0"
       ],
       "ref": "gymnasium==1.3.0"
-    },
-    {
-      "dependsOn": [
-        "pyparsing==3.1.1"
-      ],
-      "ref": "httplib2==0.20.4"
     },
     {
       "ref": "identify==2.6.19"
     },
     {
-      "ref": "idna==3.11"
-    },
-    {
       "dependsOn": [
         "mypy==2.1.0",
         "pytest==9.1.1",
-        "ruff==0.15.18"
+        "ruff==0.15.20"
       ],
       "ref": "idna==3.18"
     },
@@ -5282,7 +3569,7 @@
         "rfc3339-validator==0.1.4",
         "rfc3986-validator==0.1.1",
         "rfc3987-syntax==1.1.0",
-        "rpds-py==2026.5.1",
+        "rpds-py==2026.6.3",
         "uri-template==1.3.0",
         "webcolors==25.10.0"
       ],
@@ -5292,34 +3579,13 @@
       "ref": "lark==1.3.1"
     },
     {
-      "dependsOn": [
-        "coverage==7.14.3",
-        "httplib2==0.20.4",
-        "lazr.restfulclient==0.14.6",
-        "lazr.uri==1.0.6",
-        "pytest==9.1.1",
-        "six==1.16.0",
-        "wadllib==1.3.6"
-      ],
-      "ref": "launchpadlib==1.11.0"
-    },
-    {
-      "dependsOn": [
-        "httplib2==0.20.4"
-      ],
-      "ref": "lazr.restfulclient==0.14.6"
-    },
-    {
-      "ref": "lazr.uri==1.0.6"
-    },
-    {
-      "ref": "librt==0.11.0"
+      "ref": "librt==0.12.0"
     },
     {
       "dependsOn": [
         "boolean.py==5.0",
         "pytest==9.1.1",
-        "ruff==0.15.18"
+        "ruff==0.15.20"
       ],
       "ref": "license-expression==30.4.4"
     },
@@ -5329,8 +3595,8 @@
     {
       "dependsOn": [
         "Markdown==3.10.2",
-        "PyYAML==6.0.1",
-        "coverage==7.14.3",
+        "PyYAML==6.0.3",
+        "coverage==7.15.0",
         "mdurl==0.1.2",
         "pytest-cov==7.1.0",
         "pytest==9.1.1",
@@ -5343,7 +3609,7 @@
     },
     {
       "dependsOn": [
-        "absl-py==2.4.0",
+        "absl-py==2.5.0",
         "numpy==2.4.6",
         "pytest==9.1.1"
       ],
@@ -5352,8 +3618,7 @@
     {
       "dependsOn": [
         "pytest-cov==7.1.0",
-        "pytest==9.1.1",
-        "wheel==0.42.0"
+        "pytest==9.1.1"
       ],
       "ref": "mpmath==1.3.0"
     },
@@ -5362,15 +3627,15 @@
     },
     {
       "dependsOn": [
-        "ast_serialize==0.5.0",
-        "librt==0.11.0",
+        "ast_serialize==0.6.0",
+        "librt==0.12.0",
         "lxml==6.1.1",
         "mypy_extensions==1.1.0",
         "pathspec==1.1.1",
-        "pip==24.0",
-        "setuptools==68.1.2",
+        "pip==26.1.2",
+        "setuptools==84.0.0",
         "tomli==2.4.1",
-        "typing_extensions==4.15.0"
+        "typing_extensions==4.16.0"
       ],
       "ref": "mypy==2.1.0"
     },
@@ -5382,13 +3647,12 @@
         "lxml==6.1.1",
         "mypy==2.1.0",
         "numpy==2.4.6",
-        "pillow==12.2.0",
+        "pillow==12.3.0",
         "pre_commit==4.6.0",
         "pytest-cov==7.1.0",
         "pytest==9.1.1",
         "sympy==1.14.0",
-        "virtualenv==21.5.1",
-        "wheel==0.42.0"
+        "virtualenv==21.5.1"
       ],
       "ref": "networkx==3.6.1"
     },
@@ -5400,91 +3664,11 @@
     },
     {
       "dependsOn": [
-        "nvidia-cuda-nvrtc==13.0.88"
-      ],
-      "ref": "nvidia-cublas==13.1.1.3"
-    },
-    {
-      "ref": "nvidia-cuda-cupti==13.0.85"
-    },
-    {
-      "ref": "nvidia-cuda-nvrtc==13.0.88"
-    },
-    {
-      "ref": "nvidia-cuda-runtime==13.0.96"
-    },
-    {
-      "dependsOn": [
-        "nvidia-cublas==13.1.1.3"
-      ],
-      "ref": "nvidia-cudnn-cu13==9.20.0.48"
-    },
-    {
-      "dependsOn": [
-        "nvidia-nvjitlink==13.0.88"
-      ],
-      "ref": "nvidia-cufft==12.0.0.61"
-    },
-    {
-      "ref": "nvidia-cufile==1.15.1.6"
-    },
-    {
-      "ref": "nvidia-curand==10.4.0.35"
-    },
-    {
-      "dependsOn": [
-        "nvidia-cublas==13.1.1.3",
-        "nvidia-cusparse==12.6.3.3",
-        "nvidia-nvjitlink==13.0.88"
-      ],
-      "ref": "nvidia-cusolver==12.0.4.66"
-    },
-    {
-      "dependsOn": [
-        "nvidia-nvjitlink==13.0.88"
-      ],
-      "ref": "nvidia-cusparse==12.6.3.3"
-    },
-    {
-      "ref": "nvidia-cusparselt-cu13==0.8.1"
-    },
-    {
-      "ref": "nvidia-nccl-cu13==2.29.7"
-    },
-    {
-      "ref": "nvidia-nvjitlink==13.0.88"
-    },
-    {
-      "ref": "nvidia-nvshmem-cu13==3.4.5"
-    },
-    {
-      "ref": "nvidia-nvtx==13.0.85"
-    },
-    {
-      "dependsOn": [
-        "PyJWT==2.7.0",
-        "blinker==1.7.0",
-        "cryptography==41.0.7"
-      ],
-      "ref": "oauthlib==3.2.2"
-    },
-    {
-      "dependsOn": [
         "ml_dtypes==0.5.4",
         "numpy==2.4.6",
-        "onnx==1.22.0",
-        "sympy==1.14.0",
-        "typing_extensions==4.15.0"
-      ],
-      "ref": "onnx-ir==0.2.1"
-    },
-    {
-      "dependsOn": [
-        "ml_dtypes==0.5.4",
-        "numpy==2.4.6",
-        "pillow==12.2.0",
+        "pillow==12.3.0",
         "protobuf==7.35.1",
-        "typing_extensions==4.15.0"
+        "typing_extensions==4.16.0"
       ],
       "ref": "onnx==1.22.0"
     },
@@ -5493,7 +3677,7 @@
         "flatbuffers==25.12.19",
         "ml_dtypes==0.5.4",
         "numpy==2.4.6",
-        "packaging==24.0",
+        "packaging==26.2",
         "protobuf==7.35.1",
         "sympy==1.14.0"
       ],
@@ -5501,65 +3685,45 @@
     },
     {
       "dependsOn": [
-        "ml_dtypes==0.5.4",
-        "numpy==2.4.6",
-        "onnx-ir==0.2.1",
-        "onnx==1.22.0",
-        "packaging==24.0",
-        "typing_extensions==4.15.0"
-      ],
-      "ref": "onnxscript==0.7.0"
-    },
-    {
-      "dependsOn": [
         "mypy==2.1.0",
         "pytest==9.1.1",
-        "setuptools==68.1.2",
-        "wheel==0.42.0"
+        "setuptools==84.0.0"
       ],
       "ref": "packageurl-python==0.17.6"
-    },
-    {
-      "ref": "packaging==24.0"
     },
     {
       "ref": "packaging==26.2"
     },
     {
-      "ref": "patch-ng==1.18.1"
-    },
-    {
       "dependsOn": [
-        "typing_extensions==4.15.0"
+        "typing_extensions==4.16.0"
       ],
       "ref": "pathspec==1.1.1"
     },
     {
       "dependsOn": [
-        "coverage==7.14.3",
+        "coverage==7.15.0",
         "defusedxml==0.7.1",
-        "packaging==24.0",
+        "packaging==26.2",
         "pytest-cov==7.1.0",
-        "pytest==9.1.1"
+        "pytest==9.1.1",
+        "setuptools==84.0.0"
       ],
-      "ref": "pillow==12.2.0"
+      "ref": "pillow==12.3.0"
     },
     {
       "dependsOn": [
-        "pip==24.0"
+        "pip==26.1.2"
       ],
       "ref": "pip-api==0.0.34"
     },
     {
       "dependsOn": [
-        "packaging==24.0",
-        "pyparsing==3.1.1",
+        "packaging==26.2",
+        "pyparsing==3.3.2",
         "pytest==9.1.1"
       ],
       "ref": "pip-requirements-parser==32.0.1"
-    },
-    {
-      "ref": "pip==24.0"
     },
     {
       "ref": "pip==26.1.2"
@@ -5567,17 +3731,17 @@
     {
       "dependsOn": [
         "CacheControl==0.14.4",
-        "coverage==7.14.3",
+        "coverage==7.15.0",
         "cyclonedx-python-lib==11.11.0",
         "mypy==2.1.0",
-        "packaging==24.0",
+        "packaging==26.2",
         "pip-api==0.0.34",
         "pip-requirements-parser==32.0.1",
         "platformdirs==4.10.0",
         "pytest==9.1.1",
         "requests==2.34.2",
         "rich==15.0.0",
-        "ruff==0.15.18",
+        "ruff==0.15.20",
         "tomli==2.4.1",
         "tomli_w==1.2.0"
       ],
@@ -5588,7 +3752,7 @@
     },
     {
       "dependsOn": [
-        "coverage==7.14.3",
+        "coverage==7.15.0",
         "pre_commit==4.6.0",
         "pytest==9.1.1"
       ],
@@ -5596,7 +3760,7 @@
     },
     {
       "dependsOn": [
-        "PyYAML==6.0.1",
+        "PyYAML==6.0.3",
         "cfgv==3.5.0",
         "identify==2.6.19",
         "nodeenv==1.10.0",
@@ -5617,14 +3781,11 @@
       "dependsOn": [
         "Jinja2==3.1.6"
       ],
-      "ref": "pyparsing==3.1.1"
-    },
-    {
       "ref": "pyparsing==3.3.2"
     },
     {
       "dependsOn": [
-        "coverage==7.14.3",
+        "coverage==7.15.0",
         "pluggy==1.6.0",
         "pytest==9.1.1",
         "virtualenv==21.5.1"
@@ -5634,47 +3795,39 @@
     {
       "dependsOn": [
         "Pygments==2.20.0",
-        "argcomplete==3.1.4",
         "attrs==26.1.0",
-        "colorama==0.4.6",
         "iniconfig==2.3.0",
-        "packaging==24.0",
+        "packaging==26.2",
         "pluggy==1.6.0",
         "requests==2.34.2",
-        "setuptools==68.1.2",
+        "setuptools==84.0.0",
         "tomli==2.4.1"
       ],
       "ref": "pytest==9.1.1"
     },
     {
-      "ref": "python-apt==2.7.7+ubuntu5.2"
-    },
-    {
       "dependsOn": [
-        "six==1.16.0"
+        "six==1.17.0"
       ],
       "ref": "python-dateutil==2.9.0.post0"
     },
     {
       "dependsOn": [
-        "coverage==7.14.3",
-        "filelock==3.29.4",
+        "coverage==7.15.0",
+        "filelock==3.29.5",
         "platformdirs==4.10.0",
         "pytest==9.1.1",
-        "setuptools==68.1.2"
+        "setuptools==84.0.0"
       ],
-      "ref": "python-discovery==1.4.2"
+      "ref": "python-discovery==1.4.3"
     },
     {
       "dependsOn": [
         "attrs==26.1.0",
-        "rpds-py==2026.5.1",
-        "typing_extensions==4.15.0"
+        "rpds-py==2026.6.3",
+        "typing_extensions==4.16.0"
       ],
       "ref": "referencing==0.37.0"
-    },
-    {
-      "ref": "requests==2.33.1"
     },
     {
       "dependsOn": [
@@ -5688,7 +3841,7 @@
     },
     {
       "dependsOn": [
-        "six==1.16.0"
+        "six==1.17.0"
       ],
       "ref": "rfc3339-validator==0.1.4"
     },
@@ -5710,29 +3863,35 @@
       "ref": "rich==15.0.0"
     },
     {
-      "ref": "rpds-py==2026.5.1"
+      "ref": "rpds-py==2026.6.3"
     },
     {
-      "ref": "ruff==0.15.18"
+      "ref": "ruff==0.15.20"
     },
     {
       "dependsOn": [
         "fsspec==2026.6.0",
         "numpy==2.4.6",
         "pytest==9.1.1",
-        "ruff==0.15.18",
-        "torch==2.12.1"
+        "ruff==0.15.20",
+        "torch==2.13.0"
       ],
       "ref": "safetensors==0.8.0"
     },
     {
-      "ref": "setuptools==68.1.2"
-    },
-    {
-      "ref": "setuptools==81.0.0"
-    },
-    {
-      "ref": "six==1.16.0"
+      "dependsOn": [
+        "filelock==3.29.5",
+        "mypy==2.1.0",
+        "packaging==26.2",
+        "pip==26.1.2",
+        "pytest-cov==7.1.0",
+        "pytest==9.1.1",
+        "ruff==0.15.20",
+        "tomli==2.4.1",
+        "tomli_w==1.2.0",
+        "virtualenv==21.5.1"
+      ],
+      "ref": "setuptools==84.0.0"
     },
     {
       "ref": "six==1.17.0"
@@ -5741,7 +3900,7 @@
       "ref": "sortedcontainers==2.4.0"
     },
     {
-      "ref": "stevedore==5.8.0"
+      "ref": "stevedore==5.9.0"
     },
     {
       "dependsOn": [
@@ -5757,19 +3916,16 @@
       "dependsOn": [
         "Markdown==3.10.2",
         "Werkzeug==3.1.8",
-        "absl-py==2.4.0",
+        "absl-py==2.5.0",
         "grpcio==1.81.1",
         "numpy==2.4.6",
-        "packaging==24.0",
-        "pillow==12.2.0",
+        "packaging==26.2",
+        "pillow==12.3.0",
         "protobuf==7.35.1",
-        "setuptools==68.1.2",
+        "setuptools==84.0.0",
         "tensorboard-data-server==0.7.2"
       ],
-      "ref": "tensorboard==2.20.0"
-    },
-    {
-      "ref": "toml==0.10.2"
+      "ref": "tensorboard==2.21.0"
     },
     {
       "ref": "tomli==2.4.1"
@@ -5780,33 +3936,18 @@
     {
       "dependsOn": [
         "Jinja2==3.1.6",
-        "PyYAML==6.0.1",
-        "cuda-bindings==13.3.1",
-        "cuda-toolkit==13.0.2",
-        "filelock==3.29.4",
+        "PyYAML==6.0.3",
+        "filelock==3.29.5",
         "fsspec==2026.6.0",
         "networkx==3.6.1",
-        "nvidia-cublas==13.1.1.3",
-        "nvidia-cudnn-cu13==9.20.0.48",
-        "nvidia-cusparselt-cu13==0.8.1",
-        "nvidia-nccl-cu13==2.29.7",
-        "nvidia-nvshmem-cu13==3.4.5",
-        "setuptools==68.1.2",
+        "setuptools==84.0.0",
         "sympy==1.14.0",
-        "triton==3.7.1",
-        "typing_extensions==4.15.0"
+        "typing_extensions==4.16.0"
       ],
-      "ref": "torch==2.12.1"
+      "ref": "torch==2.13.0"
     },
     {
-      "dependsOn": [
-        "numpy==2.4.6",
-        "pytest==9.1.1"
-      ],
-      "ref": "triton==3.7.1"
-    },
-    {
-      "ref": "typing_extensions==4.15.0"
+      "ref": "typing_extensions==4.16.0"
     },
     {
       "ref": "tzdata==2026.2"
@@ -5818,47 +3959,24 @@
       "ref": "uri-template==1.3.0"
     },
     {
-      "ref": "urllib3==2.6.3"
-    },
-    {
       "ref": "urllib3==2.7.0"
     },
     {
       "dependsOn": [
         "distlib==0.4.3",
-        "filelock==3.29.4",
+        "filelock==3.29.5",
         "platformdirs==4.10.0",
-        "python-discovery==1.4.2",
-        "typing_extensions==4.15.0"
+        "python-discovery==1.4.3",
+        "typing_extensions==4.16.0"
       ],
       "ref": "virtualenv==21.5.1"
     },
     {
-      "ref": "wadllib==1.3.6"
-    },
-    {
       "ref": "webcolors==25.10.0"
-    },
-    {
-      "dependsOn": [
-        "pytest==9.1.1",
-        "setuptools==68.1.2"
-      ],
-      "ref": "wheel==0.42.0"
-    },
-    {
-      "ref": "xmltodict==0.13.0"
-    },
-    {
-      "dependsOn": [
-        "coverage==7.14.3",
-        "wheel==0.42.0"
-      ],
-      "ref": "yq==3.1.0"
     }
   ],
   "metadata": {
-    "timestamp": "2026-06-23T20:42:01.517160+00:00",
+    "timestamp": "2026-08-18T14:37:11.731155+00:00",
     "tools": {
       "components": [
         {
@@ -5962,7 +4080,7 @@
       ]
     }
   },
-  "serialNumber": "urn:uuid:8fb1b78d-b391-4079-91d3-806624c165c6",
+  "serialNumber": "urn:uuid:539fc2fb-43ac-442a-871e-4504c84ec84f",
   "version": 1,
   "$schema": "http://cyclonedx.org/schema/bom-1.6.schema.json",
   "bomFormat": "CycloneDX",
