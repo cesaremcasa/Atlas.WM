@@ -275,12 +275,14 @@ def test_git_replace_blob_cannot_redirect_head_inputs(tmp_path, monkeypatch):
         .strip()
     )
     subprocess.run(["git", "-C", str(repo), "replace", original, replacement], check=True)
-    monkeypatch.setenv("GIT_NO_REPLACE_OBJECTS", "0")
+    raw_git_env = dict(os.environ)
+    raw_git_env.pop("GIT_NO_REPLACE_OBJECTS", None)
     try:
         replaced = subprocess.run(
             ["git", "-C", str(repo), "cat-file", "blob", original],
             check=True,
             capture_output=True,
+            env=raw_git_env,
         ).stdout
         assert b"9.9.9" in replaced
         assert b"4.0.1" in _head_blob(repo, "pyproject.toml")
