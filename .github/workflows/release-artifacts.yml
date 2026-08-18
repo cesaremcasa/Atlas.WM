@@ -1,0 +1,91 @@
+name: release-artifacts
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: build-${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.11.15"
+      - name: Set up uv
+        uses: astral-sh/setup-uv@bd01e18f51369d5a26f1651c3cb451d3417e3bba # v6.3.1
+        with:
+          version: "0.10.10"
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - name: Install locked environment
+        run: uv sync --locked --extra dev
+      - name: Build and validate release artifacts
+        run: uv run --locked --python 3.11 --extra dev python scripts/build_release.py --output-dir "$RUNNER_TEMP/atlas-release"
+      - name: Upload release staging
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: release-${{ matrix.os }}
+          path: ${{ runner.temp }}/atlas-release
+          if-no-files-found: error
+      - name: Verify clean checkout
+        run: test -z "$(git status --porcelain --untracked-files=all)"
+
+  compare:
+    name: compare-cross-platform-hashes
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.11.15"
+      - name: Set up uv
+        uses: astral-sh/setup-uv@bd01e18f51369d5a26f1651c3cb451d3417e3bba # v6.3.1
+        with:
+          version: "0.10.10"
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - name: Install locked environment
+        run: uv sync --locked --extra dev
+      - name: Download platform staging
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          path: ${{ runner.temp }}/release-artifacts
+      - name: Compare artifact hashes
+        env:
+          RELEASE_ROOT: ${{ runner.temp }}/release-artifacts
+        run: |
+          python - <<'PY'
+          import os
+          from pathlib import Path
+
+          root = Path(os.environ["RELEASE_ROOT"])
+          staging = sorted(root.glob("release-*/SHA256SUMS"))
+          if len(staging) != 2:
+              raise SystemExit(f"expected Linux and macOS staging, found {staging}")
+          expected = staging[0].read_bytes()
+          if any(path.read_bytes() != expected for path in staging[1:]):
+              raise SystemExit("Linux/macOS SHA256SUMS differ")
+          for path in staging:
+              lines = path.read_text().splitlines()
+              if len(lines) != 3 or any(len(line.split()) != 2 for line in lines):
+                  raise SystemExit(f"invalid SHA256SUMS: {path}")
+          PY
+      - name: Verify clean checkout
+        run: test -z "$(git status --porcelain --untracked-files=all)"
