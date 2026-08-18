@@ -1,0 +1,12 @@
+name: workflow defaults directory fixture
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+defaults:
+  run:
+    working-directory: /tmp/project
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps: []

@@ -88,7 +88,11 @@ def _validate_uses(workflow: dict[str, Any], path: Path) -> None:
 def _validate_common_structure(workflow: dict[str, Any], path: Path) -> None:
     if workflow.get("permissions", {}) != {"contents": "read"}:
         raise ValueError(f"workflow permissions are not read-only: {path}")
+    if "defaults" in workflow or "working-directory" in workflow:
+        raise ValueError(f"workflow execution defaults are forbidden: {path}")
     for job_id, job in workflow.get("jobs", {}).items():
+        if "defaults" in job or "working-directory" in job:
+            raise ValueError(f"job execution defaults are forbidden: {path}:{job_id}")
         permissions = job.get("permissions")
         if permissions is not None and permissions not in ALLOWED_JOB_PERMISSIONS:
             raise ValueError(f"job permissions are elevated or not allowlisted: {path}:{job_id}")
@@ -222,6 +226,10 @@ def test_ci_and_canaries_use_locked_uv():
         ("second_unlocked_sync.yml", "installation command must be exactly", False),
         ("uv_pip_install.yml", "installation command must be exactly", False),
         ("custom_shell_install.yml", "installation step must be unconditional", False),
+        ("workflow_defaults_shell.yml", "workflow execution defaults", False),
+        ("job_defaults_shell.yml", "job execution defaults", False),
+        ("workflow_defaults_workdir.yml", "workflow execution defaults", False),
+        ("job_defaults_workdir.yml", "job execution defaults", False),
     ),
 )
 def test_negative_workflow_fixtures_are_rejected(fixture, message, clean_gate):

@@ -1,0 +1,12 @@
+name: job defaults shell fixture
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    defaults:
+      run:
+        shell: bash
+    runs-on: ubuntu-latest
+    steps: []
