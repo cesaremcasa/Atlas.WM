@@ -21,6 +21,11 @@ PINNED_ACTIONS = {
 SHA_RE = re.compile(r"[0-9a-f]{40}\Z")
 CLEAN_GATE = 'test -z "$(git status --porcelain --untracked-files=all)"'
 ALLOWED_JOB_PERMISSIONS = ({}, {"contents": "read"})
+INSTALL_COMMAND = "uv sync --locked --extra dev"
+INSTALL_RE = re.compile(
+    r"\b(?:uv\s+(?:sync|add|pip\s+install)|pip\s+install|"
+    r"python\s+-m\s+pip\s+install)\b"
+)
 
 
 def _workflow_files() -> list[Path]:
@@ -125,12 +130,23 @@ def _validate_runtime_structure(
             raise ValueError(f"uv version/cache pin missing: {path}")
         if uv_with.get("cache-dependency-glob") != "uv.lock":
             raise ValueError(f"uv cache key must be uv.lock: {path}")
-        if not any("uv sync --locked --extra dev" in run for run in _runs({"jobs": {"job": job}})):
-            raise ValueError(f"locked uv sync missing: {path}")
+        _validate_installation(job, path)
 
-    text = path.read_text()
-    if "pip install" in text:
-        raise ValueError(f"unlocked pip install found: {path}")
+
+def _validate_installation(job: dict[str, Any], path: Path) -> None:
+    installation_steps: list[dict[str, Any]] = []
+    for step in job.get("steps", []):
+        run = step.get("run")
+        if not isinstance(run, str) or not INSTALL_RE.search(run):
+            continue
+        installation_steps.append(step)
+        if run.strip() != INSTALL_COMMAND or "\n" in run or "\r" in run:
+            raise ValueError(f"installation command must be exactly {INSTALL_COMMAND!r}: {path}")
+        if any(key in step for key in ("if", "continue-on-error", "shell")):
+            raise ValueError(f"installation step must be unconditional/default shell: {path}")
+
+    if len(installation_steps) != 1:
+        raise ValueError(f"exactly one installation step is required: {path}")
 
 
 def _validate_canary_structure(workflow: dict[str, Any], path: Path) -> None:
@@ -201,6 +217,11 @@ def test_ci_and_canaries_use_locked_uv():
         ("second_setup_python.yml", "exactly one setup-python", False),
         ("second_setup_uv.yml", "exactly one setup-uv", False),
         ("clean_if_false.yml", "unconditional", True),
+        ("install_masked_fallback.yml", "installation command must be exactly", False),
+        ("install_multiline_fallback.yml", "installation command must be exactly", False),
+        ("second_unlocked_sync.yml", "installation command must be exactly", False),
+        ("uv_pip_install.yml", "installation command must be exactly", False),
+        ("custom_shell_install.yml", "installation step must be unconditional", False),
     ),
 )
 def test_negative_workflow_fixtures_are_rejected(fixture, message, clean_gate):
