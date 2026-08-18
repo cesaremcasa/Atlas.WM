@@ -21,6 +21,23 @@ python scripts/generate_sbom.py --project pyproject.toml \
   --lock requirements.lock --output sbom.json
 ```
 
+Release staging is local and does not publish or tag anything. It uses the
+same lock to constrain build dependencies, fixes `SOURCE_DATE_EPOCH`,
+canonicalizes wheel/sdist metadata, and writes `SHA256SUMS`:
+
+```bash
+uv run --locked --python 3.11 --extra dev \
+  python scripts/build_release.py --output-dir /tmp/atlas-release-v4.0.1
+```
+
+The manual `.github/workflows/release-artifacts.yml` job repeats this staging
+on Linux and macOS, then requires identical `SHA256SUMS` before artifacts can
+be considered release-ready. The build context contains only the allowlisted
+project metadata and `src/atlas_wm`; tests, datasets, checkpoints, papers, and
+host-specific files are never copied into it. Builds require a clean Git tree
+and read file contents from `HEAD`, so ignored or untracked source cannot be
+silently promoted into a release.
+
 ## CPU and GPU compatibility
 
 The project keeps one lock rather than maintaining separate CPU and GPU lock

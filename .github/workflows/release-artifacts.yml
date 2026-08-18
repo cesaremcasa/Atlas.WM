@@ -1,0 +1,117 @@
+name: release-artifacts
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/release-artifacts.yml"
+      - "CHANGELOG.md"
+      - "LICENSE"
+      - "README.md"
+      - "pyproject.toml"
+      - "requirements.lock"
+      - "scripts/build_release.py"
+      - "scripts/generate_sbom.py"
+      - "src/atlas_wm/**"
+      - "tests/test_release_artifacts.py"
+      - "uv.lock"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  UV_PYTHON: "3.11.15"
+
+jobs:
+  build:
+    name: build-${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # macos-latest is currently arm64 and does not publish Python 3.11.15;
+        # macos-15 provisions the exact interpreter through uv.
+        os: [ubuntu-latest, macos-15]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        if: matrix.os == 'ubuntu-latest'
+        with:
+          python-version: "3.11.15"
+      - name: Set up uv
+        uses: astral-sh/setup-uv@bd01e18f51369d5a26f1651c3cb451d3417e3bba # v6.3.1
+        with:
+          version: "0.10.10"
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - name: Install pinned Python for macOS
+        if: matrix.os == 'macos-15'
+        run: uv python install 3.11.15
+      - name: Install locked environment
+        run: uv sync --locked --extra dev
+      - name: Verify clean checkout before build
+        run: test -z "$(git status --porcelain --untracked-files=all)"
+      - name: Build and validate release artifacts
+        run: uv run --locked --python 3.11.15 --extra dev python scripts/build_release.py --output-dir "$RUNNER_TEMP/atlas-release"
+      - name: Upload release staging
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: release-${{ matrix.os }}
+          path: ${{ runner.temp }}/atlas-release
+          if-no-files-found: error
+      - name: Verify clean checkout
+        run: test -z "$(git status --porcelain --untracked-files=all)"
+
+  compare:
+    name: compare-cross-platform-hashes
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.11.15"
+      - name: Set up uv
+        uses: astral-sh/setup-uv@bd01e18f51369d5a26f1651c3cb451d3417e3bba # v6.3.1
+        with:
+          version: "0.10.10"
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - name: Install locked environment
+        run: uv sync --locked --extra dev
+      - name: Verify clean checkout before comparison
+        run: test -z "$(git status --porcelain --untracked-files=all)"
+      - name: Download platform staging
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          path: ${{ runner.temp }}/release-artifacts
+      - name: Compare artifact hashes
+        env:
+          RELEASE_ROOT: ${{ runner.temp }}/release-artifacts
+        run: |
+          uv run --locked --python 3.11.15 --extra dev python - <<'PY'
+          import os
+          import sys
+          from pathlib import Path
+
+          sys.path.insert(0, "scripts")
+          from build_release import compare_staging
+
+          root = Path(os.environ["RELEASE_ROOT"])
+          staging = sorted(path for path in root.iterdir() if path.is_dir())
+          expected_dirs = {"release-macos-15", "release-ubuntu-latest"}
+          if {path.name for path in staging} != expected_dirs:
+              raise SystemExit(f"unexpected platform staging: {staging}")
+          hashes = compare_staging(Path.cwd(), staging[0], staging[1])
+          print("verified cross-platform artifact bytes and SHA256:", hashes)
+          PY
+      - name: Verify clean checkout
+        run: test -z "$(git status --porcelain --untracked-files=all)"

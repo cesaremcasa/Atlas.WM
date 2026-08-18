@@ -6,6 +6,23 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Release readiness (v4.0.1 pending)
+
+- Package metadata and import-time version are aligned at `4.0.1`; the
+  lock-derived SBOM and reproducible wheel/sdist staging now carry the same
+  version.
+- CI and scheduled canaries use verified action SHAs, locked uv environments,
+  and deterministic checkout gates.
+
+- The release staging path builds with hash-constrained setuptools/wheel
+  dependencies, emits SHA256 checksums, and excludes datasets, checkpoints,
+  papers, host paths, and environment-specific files from artifacts. It now
+  uses a fresh source allowlist, exact archive manifests, safe extraction,
+  cross-platform canonical archive metadata, and a clean tracked-HEAD gate.
+- The manual release-artifacts workflow builds on Linux and macOS and compares
+  the resulting artifact hashes before any release publication step; pull
+  requests touching release inputs run the same matrix automatically.
+
 ### Added (v4.1 - physics identification on the MuJoCo tier)
 
 - **COAST/PUSH active policy for MuJoCo** (`CoastPushPolicy` + no-op action
