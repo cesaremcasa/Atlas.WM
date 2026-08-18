@@ -21,6 +21,11 @@ from build_release import (
     VERSION,
     WHEEL_NAME,
     _archive_members,
+    _assert_clean_tree,
+    _assert_control_files,
+    _assert_git_authority,
+    _head_blob,
+    _tracked_source_files,
     build_artifacts,
     compare_staging,
     validate_staging,
@@ -226,6 +231,65 @@ def test_git_authority_ignores_external_git_dir(tmp_path, monkeypatch):
     staging = tmp_path / "staging"
     build_artifacts(ROOT, staging)
     assert (staging / WHEEL_NAME).is_file()
+
+
+def test_git_replace_blob_cannot_redirect_head_inputs(tmp_path, monkeypatch):
+    repo = tmp_path / "fixture"
+    repo.mkdir()
+    files = {
+        "pyproject.toml": '[project]\nname = "atlas-wm"\nversion = "4.0.1"\n',
+        "README.md": "readme\n",
+        "LICENSE": "license\n",
+        "CHANGELOG.md": "changes\n",
+        "requirements.lock": "# locked\n",
+        "uv.lock": "version = 1\n",
+        "scripts/build_release.py": "# builder\n",
+        "scripts/generate_sbom.py": "# sbom\n",
+        "src/atlas_wm/__init__.py": '__version__ = "4.0.1"\n',
+    }
+    for relative, content in files.items():
+        path = repo / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(content)
+    subprocess.run(["git", "-C", str(repo), "init", "-b", "main"], check=True, capture_output=True)
+    subprocess.run(["git", "-C", str(repo), "config", "user.email", "test@example.com"], check=True)
+    subprocess.run(["git", "-C", str(repo), "config", "user.name", "test"], check=True)
+    subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
+    subprocess.run(
+        ["git", "-C", str(repo), "commit", "-m", "fixture"], check=True, capture_output=True
+    )
+    original = subprocess.run(
+        ["git", "-C", str(repo), "rev-parse", "HEAD:pyproject.toml"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    replacement = (
+        subprocess.run(
+            ["git", "-C", str(repo), "hash-object", "-w", "--stdin"],
+            input=b'[project]\nname = "atlas-wm"\nversion = "9.9.9"\n',
+            check=True,
+            capture_output=True,
+        )
+        .stdout.decode()
+        .strip()
+    )
+    subprocess.run(["git", "-C", str(repo), "replace", original, replacement], check=True)
+    monkeypatch.setenv("GIT_NO_REPLACE_OBJECTS", "0")
+    try:
+        replaced = subprocess.run(
+            ["git", "-C", str(repo), "cat-file", "blob", original],
+            check=True,
+            capture_output=True,
+        ).stdout
+        assert b"9.9.9" in replaced
+        assert b"4.0.1" in _head_blob(repo, "pyproject.toml")
+        _assert_git_authority(repo)
+        _assert_clean_tree(repo)
+        _assert_control_files(repo)
+        assert "src/atlas_wm/__init__.py" in _tracked_source_files(repo)
+    finally:
+        subprocess.run(["git", "-C", str(repo), "replace", "-d", original], check=True)
 
 
 def test_assume_unchanged_control_file_cannot_contaminate_build(tmp_path):

@@ -112,11 +112,12 @@ def _git(repo_root: Path, *args: str, check: bool = True) -> subprocess.Complete
         {
             "GIT_CONFIG_NOSYSTEM": "1",
             "GIT_CONFIG_GLOBAL": os.devnull,
+            "GIT_NO_REPLACE_OBJECTS": "1",
             "GIT_TERMINAL_PROMPT": "0",
         }
     )
     return subprocess.run(
-        ["git", "--no-pager", "-C", str(repo_root), *args],
+        ["git", "--no-replace-objects", "--no-pager", "-C", str(repo_root), *args],
         check=check,
         env=env,
         stdout=subprocess.PIPE,
